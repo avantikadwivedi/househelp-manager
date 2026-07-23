@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#3D7A4A"/>
+<title>घर का काम</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;display:flex;flex-direction:column;align-items:center}
+.app{width:100%;max-width:440px;min-height:100dvh;background:#F5F0E8;display:flex;flex-direction:column}
+
+.setup{background:#3D7A4A;flex:1;padding:56px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:100dvh}
+.setup-logo{font-size:28px;font-weight:700;color:#fff;text-align:center}
+.setup-sub{font-size:15px;color:rgba(255,255,255,.85);margin-top:6px;text-align:center;line-height:1.5}
+.setup-inp{width:100%;padding:20px;border:2px solid #fff;border-radius:14px;font-size:20px;background:rgba(255,255,255,.15);color:#fff;outline:none;text-align:center;letter-spacing:2px;font-weight:600}
+.setup-inp::placeholder{color:rgba(255,255,255,.6)}
+.setup-btn{width:100%;padding:20px;background:#E8943A;border:none;border-radius:14px;font-size:18px;font-weight:700;color:#2D1B0E;cursor:pointer}
+
+.helper-hdr{background:#3D7A4A;padding:24px 18px 18px;text-align:center;flex-shrink:0;position:relative}
+.hdr-code{position:absolute;top:8px;right:12px;font-size:10px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.15);padding:3px 8px;border-radius:8px}
+.hdr-icon{font-size:34px;display:block;margin-bottom:6px}
+.hdr-title{font-size:24px;font-weight:700;color:#fff}
+.hdr-sub{font-size:13px;color:rgba(255,255,255,.85);margin-top:6px}
+
+.notif-bar{background:#FFF3CC;padding:10px 14px;text-align:center;font-size:12px;color:#7B4A00;border-bottom:1px solid #F5D889}
+.notif-bar button{background:#E8943A;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-left:8px;cursor:pointer}
+
+.day-bar{background:#27500A;padding:10px 14px;display:flex;gap:8px;overflow-x:auto;flex-shrink:0}
+.day-bar::-webkit-scrollbar{display:none}
+.day-btn{padding:8px 18px;border-radius:20px;border:none;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,.18);color:rgba(255,255,255,.85);flex-shrink:0}
+.day-btn.on{background:#fff;color:#27500A}
+
+.h-prog{padding:10px 16px 4px;font-size:14px;color:#666;text-align:center;font-weight:500}
+.h-prog-bar{margin:6px 16px 14px;background:#DDD;border-radius:20px;height:10px;overflow:hidden}
+.h-prog-fill{height:100%;background:#3D7A4A;border-radius:20px;transition:width .4s}
+
+.body{padding:0 16px 24px;flex:1;overflow-y:auto;position:relative}
+
+.section-hdr{font-size:12px;font-weight:700;color:#666;letter-spacing:.5px;padding:14px 4px 8px;display:flex;align-items:center;gap:6px}
+.section-hdr:first-child{padding-top:4px}
+.section-count{background:#F0E0D0;color:#8B6F5C;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+
+.task-card{border-radius:14px;margin-bottom:10px;overflow:hidden;border:1.5px solid #E8E0D8;display:flex;align-items:stretch;background:#fff}
+.task-card.done{border-color:#3D7A4A;background:#EAF3DE}
+.task-card.speaking{border-color:#E8943A}
+.task-card.weekly{border:2.5px solid #C0622A;background:linear-gradient(135deg,#FFF8EE 0%,#FFE9CC 100%);box-shadow:0 2px 12px rgba(192,98,42,.15)}
+.task-card.monthly{border:2.5px solid #7B4A9B;background:linear-gradient(135deg,#F5EEFA 0%,#E5D5F0 100%);box-shadow:0 2px 12px rgba(123,74,155,.15)}
+.task-card.timed{border-left:5px solid #C0622A}
+.task-card.done.weekly,.task-card.done.monthly{background:#EAF3DE;border-color:#3D7A4A;box-shadow:none}
+
+.badge{display:inline-block;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-bottom:6px;letter-spacing:.3px}
+.badge-w{background:#C0622A}
+.badge-m{background:#7B4A9B}
+.task-card.done .badge{background:#3D7A4A}
+
+.play-btn{width:60px;background:#E8943A;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.task-card.done .play-btn{background:#3D7A4A}
+.task-card.weekly .play-btn{background:#C0622A}
+.task-card.monthly .play-btn{background:#7B4A9B}
+.task-card.done.weekly .play-btn,.task-card.done.monthly .play-btn{background:#3D7A4A}
+.task-card.speaking .play-btn{animation:pulse .7s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.5}}
+
+.task-info{flex:1;padding:12px 12px}
+.ttime{font-size:12px;color:#C0622A;font-weight:700;margin-bottom:3px}
+.tname{font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.35}
+.task-card.done .tname{color:#27500A}
+.tmeta{font-size:12px;color:#3D7A4A;margin-top:4px;font-weight:500}
+.check-btn{width:56px;border:none;background:transparent;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.check-btn:active{transform:scale(.8)}
+
+.reset-bar{padding:8px 16px 16px;text-align:center}
+.reset-btn{background:transparent;border:1.5px solid #DDD;border-radius:20px;padding:8px 18px;font-size:12px;color:#888;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div id="setup" class="setup">
+  <div>
+    <div class="setup-logo">🧹 घर का काम</div>
+    <div class="setup-sub">आपका काम देखने के लिए<br/>कोड डालिए</div>
+  </div>
+  <div style="width:100%">
+    <input class="setup-inp" id="code-inp" placeholder="CODE" maxlength="15" />
+  </div>
+  <button class="setup-btn" onclick="setupCode()">शुरू करें →</button>
+</div>
+
+<div id="main" style="display:none;flex-direction:column;flex:1">
+
+  <div class="helper-hdr">
+    <span class="hdr-code" id="hdr-code"></span>
+    <span class="hdr-icon">🧹</span>
+    <div class="hdr-title" id="h-greeting">आज का काम</div>
+    <div class="hdr-sub">सुनने के लिए ▶ दबाएँ</div>
+  </div>
+
+  <div id="notif-bar" class="notif-bar" style="display:none">
+    🔔 काम के 5 मिनट पहले सूचना पाएँ
+    <button onclick="enableNotifs()">Enable</button>
+  </div>
+
+  <div class="day-bar" id="day-bar"></div>
+  <div class="h-prog" id="h-prog-lbl"></div>
+  <div class="h-prog-bar"><div class="h-prog-fill" id="h-prog-fill" style="width:0%"></div></div>
+
+  <div class="body" id="helper-body"></div>
+
+  <div class="reset-bar">
+    <button class="reset-btn" onclick="resetDone()">↺ नए दिन के लिए रीसेट करें</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY_MAP = {Sun:'Sun',Mon:'Mon',Tue:'Tue',Wed:'Wed',Thu:'Thu',Fri:'Fri',Sat:'Sat'};
+
+let homeCode = null;
+let tasks = [];
+let weekly = {};
+let monthly = [];
+let laundry = {};
+let doneMap = {};
+let selectedDay = null;
+let speakingId = null;
+let unsubTasks = null, unsubDone = null, unsubConfig = null;
+
+function initApp() {
+  homeCode = localStorage.getItem('gk_home_code');
+  if (homeCode) showMain();
+}
+
+function setupCode() {
+  const code = document.getElementById('code-inp').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  if (!code || code.length < 3) { alert('कोड डालिए (3+ characters)'); return; }
+  homeCode = code;
+  localStorage.setItem('gk_home_code', homeCode);
+  showMain();
+}
+
+function showMain() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('main').style.display = 'flex';
+  document.getElementById('hdr-code').textContent = '🔑 ' + homeCode;
+  initGreeting();
+  subscribeAll();
+  checkNotifPermission();
+}
+
+function initGreeting() {
+  const now = new Date();
+  selectedDay = DAYS[now.getDay()];
+  const h = now.getHours();
+  document.getElementById('h-greeting').textContent = h < 12 ? 'सुप्रभात! 🌞' : h < 17 ? 'नमस्ते! ☀️' : 'शाम को नमस्ते! 🌆';
+  document.getElementById('day-bar').innerHTML = DAYS.map(d =>
+    '<button class="day-btn' + (d === selectedDay ? ' on' : '') + '" onclick="selectDay(\'' + d + '\')">' + d + '</button>'
+  ).join('');
+}
+
+function selectDay(d) {
+  selectedDay = d;
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('on', b.textContent === d));
+  render();
+}
+
+function subscribeAll() {
+  if (unsubTasks) unsubTasks();
+  if (unsubDone) unsubDone();
+  if (unsubConfig) unsubConfig();
+
+  unsubTasks = db.collection('homes').doc(homeCode).collection('tasks')
+    .orderBy('order').onSnapshot(snap => {
+      tasks = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      render();
+      scheduleNotifications();
+    });
+
+  const today = new Date().toISOString().slice(0, 10);
+  unsubDone = db.collection('homes').doc(homeCode).collection('done').doc(today)
+    .onSnapshot(doc => {
+      doneMap = (doc.exists ? doc.data() : {}) || {};
+      render();
+    });
+
+  unsubConfig = db.collection('homes').doc(homeCode).onSnapshot(doc => {
+    if (doc.exists) {
+      const d = doc.data();
+      weekly = d.weekly || {};
+      monthly = d.monthly || [];
+      laundry = d.laundry || {};
+      render();
+      scheduleNotifications();
+    }
+  });
+}
+
+function getSatWeekOfMonth() {
+  return Math.ceil(new Date().getDate() / 7);
+}
+
+function getTasksForDay(day) {
+  return tasks.filter(t => {
+    if (!t.enabled) return false;
+    if (t.freq === 'daily') return true;
+    if (t.freq === 'weekly') return (t.days || []).includes(day);
+    if (t.freq === 'once') {
+      if (!t.createdAt) return true;
+      const c = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+      const now = new Date();
+      return c.toDateString() === now.toDateString() && day === DAYS[now.getDay()];
+    }
+    return false;
+  });
+}
+
+function getWeeklyForDay(day) {
+  // Only show weekly special task on its assigned day, based on config
+  if (weekly[day]) return {id:'w-'+day, hi: weekly[day], kind:'weekly'};
+  return null;
+}
+
+function getMonthlyForToday() {
+  // Only appears on Saturdays
+  const today = new Date();
+  if (DAYS[today.getDay()] !== 'Sat' || selectedDay !== 'Sat') return null;
+  if (!monthly.length) return null;
+  const idx = (getSatWeekOfMonth() - 1) % monthly.length;
+  return {id:'m-'+idx, hi: monthly[idx], kind:'monthly'};
+}
+
+function getLaundryTaskId() {
+  // Enhance laundry task on daily tasks list, if any
+  return null;
+}
+
+function render() {
+  const dayTasks = getTasksForDay(selectedDay);
+  const timed = dayTasks.filter(t => t.time).sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  const anytime = dayTasks.filter(t => !t.time);
+  const wk = getWeeklyForDay(selectedDay);
+  const mo = getMonthlyForToday();
+
+  // Add laundry to anytime as a special note (append to first laundry-like task or as its own)
+  const laundryToday = laundry[selectedDay];
+
+  // Progress
+  const allForProgress = [...timed, ...anytime];
+  if (wk) allForProgress.push({id: wk.id});
+  if (mo) allForProgress.push({id: mo.id});
+  const total = allForProgress.length;
+  const doneC = allForProgress.filter(t => doneMap[t.id]).length;
+  const pct = total ? Math.round(doneC / total * 100) : 0;
+  document.getElementById('h-prog-lbl').textContent = doneC + ' / ' + total + ' काम हुए (' + pct + '%)';
+  document.getElementById('h-prog-fill').style.width = pct + '%';
+
+  let html = '';
+
+  // Weekly + monthly at top (special tasks with reminders)
+  if (wk || mo) {
+    html += '<div class="section-hdr">⭐ आज के खास काम</div>';
+    if (mo) html += renderTask(mo);
+    if (wk) html += renderTask(wk);
+  }
+
+  // Laundry reminder as a note
+  if (laundryToday) {
+    html += '<div class="section-hdr">🧺 आज की धुलाई</div>';
+    html += renderTask({id: 'laundry-' + selectedDay, hi: laundryToday, kind: 'weekly'});
+  }
+
+  // Timed tasks
+  if (timed.length) {
+    html += '<div class="section-hdr">⏰ समय पर करने वाले काम <span class="section-count">' + timed.length + '</span></div>';
+    html += timed.map(t => renderTask(t, true)).join('');
+  }
+
+  // Anytime tasks
+  if (anytime.length) {
+    html += '<div class="section-hdr">📋 कभी भी करें <span class="section-count">' + anytime.length + '</span></div>';
+    html += anytime.map(t => renderTask(t)).join('');
+  }
+
+  if (!timed.length && !anytime.length && !wk && !mo && !laundryToday) {
+    html = '<div style="text-align:center;padding:60px 20px;color:#888">आज कोई काम नहीं है</div>';
+  }
+
+  document.getElementById('helper-body').innerHTML = html;
+}
+
+function renderTask(t, isTimed) {
+  const isDone = doneMap[t.id];
+  const isSpeaking = speakingId === t.id;
+  const kind = t.kind || (isTimed ? 'timed' : '');
+  const classes = 'task-card' + (isDone ? ' done' : '') + (isSpeaking ? ' speaking' : '') + (kind ? ' ' + kind : '');
+  let badge = '';
+  if (kind === 'weekly')  badge = '<div class="badge badge-w">⭐ हफ्ते में एक बार</div>';
+  if (kind === 'monthly') badge = '<div class="badge badge-m">🌟 महीने में एक बार</div>';
+
+  return '<div class="' + classes + '">' +
+    '<button class="play-btn" onclick="speakTask(\'' + t.id + '\')">' + (isSpeaking ? '🔊' : '▶') + '</button>' +
+    '<div class="task-info">' +
+    (t.time ? '<div class="ttime">⏰ ' + t.time + '</div>' : '') +
+    badge +
+    '<div class="tname">' + escapeHtml(t.hi || t.name) + '</div>' +
+    (isDone ? '<div class="tmeta">✓ हो गया</div>' : '') +
+    '</div>' +
+    '<button class="check-btn" onclick="toggleDone(\'' + t.id + '\')">' + (isDone ? '✅' : '⭕') + '</button>' +
+    '</div>';
+}
+
+function speakTask(id) {
+  if (!window.speechSynthesis) return;
+  let text = null;
+  const t = tasks.find(x => x.id === id);
+  if (t) text = t.hi || t.name;
+  else if (id.startsWith('w-')) { const day = id.slice(2); text = weekly[day]; }
+  else if (id.startsWith('m-')) { const idx = parseInt(id.slice(2)); text = monthly[idx]; }
+  else if (id.startsWith('laundry-')) { const day = id.slice(8); text = laundry[day]; }
+  if (!text) return;
+
+  window.speechSynthesis.cancel();
+  speakingId = id;
+  render();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'hi-IN'; u.rate = 0.82;
+  const voices = window.speechSynthesis.getVoices();
+  const hv = voices.find(v => v.lang === 'hi-IN');
+  if (hv) u.voice = hv;
+  u.onend = u.onerror = () => { speakingId = null; render(); };
+  window.speechSynthesis.speak(u);
+}
+
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+async function toggleDone(id) {
+  doneMap[id] = !doneMap[id];
+  if (!doneMap[id]) delete doneMap[id];
+  render();
+  if (doneMap[id]) confetti();
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    await db.collection('homes').doc(homeCode).collection('done').doc(today).set(doneMap, {merge: false});
+  } catch (e) { console.error(e); }
+}
+
+async function resetDone() {
+  if (!confirm('सभी काम रीसेट करें?')) return;
+  doneMap = {}; render();
+  const today = new Date().toISOString().slice(0, 10);
+  try { await db.collection('homes').doc(homeCode).collection('done').doc(today).set({}); } catch(e) {}
+}
+
+function confetti() {
+  const b = document.getElementById('helper-body');
+  const d = document.createElement('div');
+  d.style.cssText = 'position:absolute;top:0;left:0;right:0;pointer-events:none;height:80px;overflow:hidden;z-index:10';
+  const colors = ['#E8943A','#3D7A4A','#4A6FA5','#C0622A','#FFD700'];
+  for (let i = 0; i < 22; i++) {
+    const s = document.createElement('div');
+    const sz = 7 + Math.random() * 7;
+    s.style.cssText = 'position:absolute;width:'+sz+'px;height:'+sz+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:'+(Math.random()>.5?'50%':'3px')+';left:'+(5+Math.random()*90)+'%;top:-12px;animation:fall 1.3s ease-in forwards;animation-delay:'+(Math.random()*.35)+'s';
+    d.appendChild(s);
+  }
+  b.appendChild(d);
+  setTimeout(() => { try { b.removeChild(d); } catch(e) {} }, 1800);
+}
+
+function checkNotifPermission() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'default') {
+    document.getElementById('notif-bar').style.display = 'block';
+  } else if (Notification.permission === 'granted') {
+    registerSW();
+  }
+}
+
+async function enableNotifs() {
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    document.getElementById('notif-bar').style.display = 'none';
+    registerSW();
+  }
+}
+
+async function registerSW() {
+  try {
+    await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    scheduleNotifications();
+  } catch(e) { console.error(e); }
+}
+
+function scheduleNotifications() {
+  if (Notification.permission !== 'granted' || !navigator.serviceWorker.controller) return;
+  const today = DAYS[new Date().getDay()];
+  const dayTasks = getTasksForDay(today);
+  const timedTasks = dayTasks.filter(t => t.time).map(t => ({
+    id: t.id, name: t.hi || t.name, time: t.time
+  }));
+
+  const morningTasks = [];
+  const wk = getWeeklyForDay(today);
+  if (wk) morningTasks.push({id: wk.id, name: wk.hi});
+  if (today === 'Sat') {
+    const mo = getMonthlyForToday();
+    if (mo) morningTasks.push({id: mo.id, name: mo.hi});
+  }
+  if (laundry[today]) morningTasks.push({id: 'laundry-' + today, name: laundry[today]});
+
+  navigator.serviceWorker.controller.postMessage({
+    type: 'SCHEDULE',
+    timedTasks,
+    morningTasks
+  });
+}
+
+function timeToMinutes(t) {
+  if (!t) return 0;
+  const parts = t.split(':');
+  return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+initApp();
+</script>
+<style>@keyframes fall{to{top:110%;opacity:0;transform:rotate(360deg)}}</style>
+</body>
+</html>

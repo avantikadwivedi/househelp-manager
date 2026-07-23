@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#2D1B0E"/>
+<title>Ghar Kaam — Employer</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;display:flex;flex-direction:column;align-items:center}
+.app{width:100%;max-width:440px;min-height:100dvh;background:#F5F0E8;display:flex;flex-direction:column}
+
+.setup{background:#2D1B0E;flex:1;padding:56px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:100dvh}
+.setup-logo{font-size:26px;font-weight:700;color:#E8943A;text-align:center}
+.setup-sub{font-size:14px;color:#A08070;margin-top:6px;text-align:center}
+.setup-inp{width:100%;padding:18px 20px;border:2px solid #E8943A;border-radius:14px;font-size:18px;background:#fff;color:#2D1B0E;outline:none;text-align:center;letter-spacing:2px;font-weight:600}
+.setup-btn{width:100%;padding:18px;background:#E8943A;border:none;border-radius:14px;font-size:16px;font-weight:700;color:#2D1B0E;cursor:pointer}
+.setup-hint{font-size:12px;color:#A08070;text-align:center;line-height:1.5;margin-top:8px}
+
+.topbar{background:#2D1B0E;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-title{font-size:16px;font-weight:700;color:#E8943A}
+.tb-code{background:rgba(232,148,58,.15);color:#E8943A;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;margin-top:3px;display:inline-block}
+.tb-btn{background:rgba(255,255,255,.12);border:none;color:#ccc;padding:8px 12px;border-radius:10px;font-size:12px;cursor:pointer}
+
+.tabs{display:flex;background:#2D1B0E;padding:0 14px 12px;gap:6px;flex-shrink:0}
+.tab{flex:1;padding:10px 4px;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.08);color:#A08070}
+.tab.on{background:#E8943A;color:#2D1B0E}
+
+.body{padding:16px;overflow-y:auto;flex:1}
+
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid #EEE}
+.card h3{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card .hint{font-size:12px;color:#888;margin-bottom:12px;line-height:1.5}
+
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:600}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid #E0D0C0;border-radius:10px;font-size:14px;background:#F9F5F0;color:#1a1a1a;outline:none;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#C0622A;background:#fff}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+.day-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dc{padding:6px 12px;border-radius:20px;border:1.5px solid #E0D0C0;background:#F9F5F0;font-size:12px;cursor:pointer;color:#666;font-weight:600}
+.dc.sel{background:#4A6FA5;border-color:#4A6FA5;color:#fff}
+
+.btn{width:100%;padding:14px;background:#C0622A;border:none;border-radius:12px;font-size:14px;font-weight:600;color:#fff;cursor:pointer}
+.btn:active{opacity:.8}
+.btn.secondary{background:transparent;color:#666;border:1.5px solid #DDD}
+
+/* Task rows in manage/library */
+.task-row{background:#fff;border:1px solid #EEE;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.task-row .toggle{width:24px;height:24px;flex-shrink:0;cursor:pointer;font-size:20px;line-height:1}
+.task-row .info{flex:1;min-width:0}
+.task-row .name{font-size:14px;color:#1a1a1a;font-weight:500;line-height:1.35}
+.task-row .name.off{color:#aaa;text-decoration:line-through}
+.task-row .meta{font-size:11px;color:#888;margin-top:3px}
+.task-row .actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn{background:#F5F0E8;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px}
+.icon-btn.del{background:#FCEBEB;color:#A32D2D}
+
+.badge-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;margin-right:4px}
+.badge-daily{background:#EAF3DE;color:#3D7A4A}
+.badge-weekly{background:#FFE9CC;color:#C0622A}
+.badge-monthly{background:#E5D5F0;color:#7B4A9B}
+.badge-once{background:#DDEBF7;color:#4A6FA5}
+.badge-timed{background:#FFF3CC;color:#7B4A00}
+
+.section-hdr{font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:14px 4px 8px;text-transform:uppercase}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#2D1B0E;color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;z-index:99;transition:transform .3s;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+.helper-link{padding:14px;background:#EAF3DE;border-radius:12px;font-size:12px;color:#27500A;line-height:1.6;margin-bottom:14px}
+.helper-link strong{color:#3D7A4A}
+.copy-btn{margin-top:8px;background:#3D7A4A;color:#fff;border:none;padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600}
+
+.empty{text-align:center;padding:24px 16px;color:#888;font-size:13px;line-height:1.6}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-card{background:#F9F5F0;border-radius:12px;padding:14px;text-align:center}
+.stat-num{font-size:22px;font-weight:700;color:#3D7A4A}
+.stat-lbl{font-size:11px;color:#888;margin-top:2px}
+
+/* Weekly/monthly rotating tasks editor */
+.rot-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.rot-row .lbl{width:38px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;flex-shrink:0}
+.rot-row input{flex:1;padding:8px 10px;border:1px solid #E0D0C0;border-radius:8px;font-size:13px;background:#F9F5F0;color:#1a1a1a;outline:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SETUP -->
+<div id="setup" class="setup">
+  <div>
+    <div class="setup-logo">🏠 Ghar Kaam</div>
+    <div class="setup-sub">Employer Setup</div>
+  </div>
+  <div style="width:100%">
+    <input class="setup-inp" id="home-code-inp" placeholder="ENTER HOME CODE" maxlength="15" />
+    <div class="setup-hint">Pick a unique code (e.g., ava-home).<br/>Your maid will use the same code.</div>
+  </div>
+  <button class="setup-btn" onclick="setupHome()">Continue →</button>
+</div>
+
+<!-- MAIN -->
+<div id="main" style="display:none;flex-direction:column;flex:1">
+
+  <div class="topbar">
+    <div>
+      <div class="tb-title">🏠 Ghar Kaam</div>
+      <div><span class="tb-code" id="home-label"></span></div>
+    </div>
+    <button class="tb-btn" onclick="switchHome()">Switch</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="t-tasks" onclick="setTab('tasks')">📋 Tasks</button>
+    <button class="tab" id="t-add" onclick="setTab('add')">➕ Add</button>
+    <button class="tab" id="t-special" onclick="setTab('special')">⭐ Weekly/Monthly</button>
+    <button class="tab" id="t-status" onclick="setTab('status')">📊 Status</button>
+  </div>
+
+  <div class="body">
+
+    <!-- TASKS TAB (library view) -->
+    <div id="p-tasks">
+      <div class="helper-link">
+        <div><strong>📱 Share with maid</strong></div>
+        <div style="margin-top:4px">Ask her to open the helper link and enter: <strong id="show-code"></strong></div>
+        <button class="copy-btn" onclick="shareCode()">📋 Copy link + code</button>
+      </div>
+
+      <div class="section-hdr">All Tasks — Toggle ✅ to activate</div>
+      <div id="task-list"></div>
+    </div>
+
+    <!-- ADD TASK TAB -->
+    <div id="p-add" style="display:none">
+      <div class="card">
+        <h3>➕ Add New Task</h3>
+
+        <div class="field">
+          <label>Task description (in English)</label>
+          <textarea id="task-name" rows="2" placeholder="e.g., Clean the fan"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Hindi translation (auto-filled, edit if needed)</label>
+          <textarea id="task-name-hi" rows="2" placeholder="Same as above by default — write Hindi here"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Frequency</label>
+            <select id="task-freq" onchange="freqChanged()">
+              <option value="daily">Every day</option>
+              <option value="weekly">Certain days only</option>
+              <option value="once">Once (today only)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Time (optional)</label>
+            <input id="task-time" placeholder="e.g., 10:00" />
+          </div>
+        </div>
+
+        <div class="field" id="days-field" style="display:none">
+          <label>Which days?</label>
+          <div class="day-chips" id="day-chips">
+            <div class="dc" data-d="Mon" onclick="toggleDay(this)">Mon</div>
+            <div class="dc" data-d="Tue" onclick="toggleDay(this)">Tue</div>
+            <div class="dc" data-d="Wed" onclick="toggleDay(this)">Wed</div>
+            <div class="dc" data-d="Thu" onclick="toggleDay(this)">Thu</div>
+            <div class="dc" data-d="Fri" onclick="toggleDay(this)">Fri</div>
+            <div class="dc" data-d="Sat" onclick="toggleDay(this)">Sat</div>
+            <div class="dc" data-d="Sun" onclick="toggleDay(this)">Sun</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#888;margin-bottom:12px;line-height:1.5">
+          💡 If you set a <strong>time</strong>, she gets a notification 5 min before.<br/>
+          If no time is set, she does it whenever during the day.
+        </div>
+
+        <button class="btn" onclick="addTask()">Add Task ✓</button>
+      </div>
+    </div>
+
+    <!-- WEEKLY/MONTHLY TAB -->
+    <div id="p-special" style="display:none">
+      <div class="card">
+        <h3>⭐ Weekly Tasks</h3>
+        <div class="hint">Once-a-week tasks. Reminder fires at 8 AM + evening nudge if not done.</div>
+        <div id="weekly-editor"></div>
+        <button class="btn" onclick="saveWeekly()">Save Weekly Tasks</button>
+      </div>
+
+      <div class="card">
+        <h3>🌟 Monthly Tasks (rotate on Saturdays)</h3>
+        <div class="hint">These rotate across Saturdays of the month. Week 1 = task 1, Week 2 = task 2, etc.</div>
+        <div id="monthly-editor"></div>
+        <button class="btn secondary" onclick="addMonthlySlot()" style="margin-bottom:8px">+ Add another monthly task</button>
+        <button class="btn" onclick="saveMonthly()">Save Monthly Tasks</button>
+      </div>
+
+      <div class="card">
+        <h3>🧺 Laundry rotation (by day)</h3>
+        <div class="hint">What clothes to wash each day.</div>
+        <div id="laundry-editor"></div>
+        <button class="btn" onclick="saveLaundry()">Save Laundry Rotation</button>
+      </div>
+    </div>
+
+    <!-- STATUS TAB -->
+    <div id="p-status" style="display:none">
+      <div class="card">
+        <h3>📊 Today's Progress</h3>
+        <div id="status-body"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// Default task library — seeded on first setup
+const DEFAULT_TASKS = [
+  {name:'Make amla paani, wash vegetables and fruits, keep towels', hi:'आँवला पानी बनाएँ। सब्ज़ियाँ और फल धोएँ। तौलिये रखें।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Keep utensils back, wash utensils', hi:'बर्तन वापस रखें। बर्तन धोएँ।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Breakfast', hi:'नाश्ता बनाएँ।', freq:'daily', time:'8:00', enabled:true, isDefault:true},
+  {name:'Clean dining table, kitchen, make bed', hi:'डाइनिंग टेबल साफ़ करें, किचन साफ़ करें, बिस्तर बनाएँ।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Dusting and keep things', hi:'झाड़-पोंछा करें और सामान सही जगह रखें।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Milk, pickup tub and toys', hi:'दूध लाएँ। टब और खिलौने उठाकर रखें।', freq:'daily', time:'10:15', enabled:true, isDefault:true},
+  {name:'Wash utensils', hi:'बर्तन वापस रखें। बाकी बर्तन धोएँ।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Lunch', hi:'दोपहर का खाना बनाएँ।', freq:'daily', time:'12:30', enabled:true, isDefault:true},
+  {name:'Clean kitchen and floor, wash utensils', hi:'किचन और फर्श साफ़ करें। बर्तन धोएँ।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Laundry, make snacks', hi:'कपड़े धोएँ। नाश्ता बनाएँ।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Dinner', hi:'रात का खाना बनाएँ।', freq:'daily', time:'17:30', enabled:true, isDefault:true},
+  {name:'Wash utensils and clean kitchen, grate Viraj\'s dryfruits', hi:'बर्तन धोएँ और किचन साफ़ करें। विराज के ड्राईफ्रूट्स कद्दूकस करें।', freq:'daily', time:'', enabled:true, isDefault:true},
+  {name:'Keep things, clean floor, clean sink', hi:'सामान सही जगह रखें। फर्श साफ़ करें। सिंक साफ़ करें।', freq:'daily', time:'', enabled:true, isDefault:true}
+];
+
+const DEFAULT_WEEKLY = {
+  Mon: 'चादर बदलें और बेड वैक्यूम करें। स्प्राउट्स भिगोएँ।',
+  Tue: 'फ्रिज साफ़ करें। बोतल साफ़ करें।',
+  Wed: 'किचन और यूटिलिटी की सफ़ाई करें।',
+  Thu: 'सोफा, डोरमैट और कारपेट वैक्यूम करें। वीरू की पॉटी सीट अच्छे से रगड़कर साफ़ करें।',
+  Fri: 'जिम मैट और वीरू मैट साफ़ करें। स्प्राउट्स भिगोएँ। डोसा बैटर बनाएँ।'
+};
+
+const DEFAULT_MONTHLY = [
+  'खिलौने और खिलौनों की शेल्फ साफ़ करें।',
+  'खिड़कियाँ वैक्यूम करें।',
+  'वीरू की स्ट्रॉलर, खाने की कुर्सी, स्टूल, टब और बाल्टी साफ़ करें।'
+];
+
+const DEFAULT_LAUNDRY = {
+  Mon: 'विराज के और बेडशीट के कपड़े धोएँ।',
+  Tue: 'सर के कपड़े धोएँ।',
+  Wed: 'विराज के और झाड़न के कपड़े धोएँ।',
+  Thu: 'किचन के तौलिये धोएँ।',
+  Fri: 'मैम के कपड़े धोएँ।',
+  Sat: 'विराज के और तौलिये धोएँ।'
+};
+
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+let homeCode = null;
+let tasks = [];
+let weekly = {...DEFAULT_WEEKLY};
+let monthly = [...DEFAULT_MONTHLY];
+let laundry = {...DEFAULT_LAUNDRY};
+let doneMap = {};
+let selectedDays = [];
+let unsubTasks = null, unsubDone = null, unsubSpecial = null;
+
+function initApp() {
+  homeCode = localStorage.getItem('gk_home_code');
+  if (homeCode) showMain();
+}
+
+function setupHome() {
+  const code = document.getElementById('home-code-inp').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  if (!code || code.length < 3) { toast('Enter at least 3 characters'); return; }
+  homeCode = code;
+  localStorage.setItem('gk_home_code', homeCode);
+  showMain();
+}
+
+function switchHome() {
+  if (!confirm('Switch to a different home?')) return;
+  if (unsubTasks) unsubTasks();
+  if (unsubDone) unsubDone();
+  if (unsubSpecial) unsubSpecial();
+  localStorage.removeItem('gk_home_code');
+  homeCode = null;
+  document.getElementById('setup').style.display = 'flex';
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('home-code-inp').value = '';
+}
+
+async function showMain() {
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('main').style.display = 'flex';
+  document.getElementById('home-label').textContent = '🔑 ' + homeCode;
+  document.getElementById('show-code').textContent = homeCode;
+
+  // Seed defaults if this is a new home
+  await seedIfNew();
+  subscribeAll();
+}
+
+async function seedIfNew() {
+  const configRef = db.collection('homes').doc(homeCode);
+  const doc = await configRef.get();
+  if (!doc.exists) {
+    // First time — seed defaults
+    await configRef.set({
+      weekly: DEFAULT_WEEKLY,
+      monthly: DEFAULT_MONTHLY,
+      laundry: DEFAULT_LAUNDRY,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Seed default tasks
+    const batch = db.batch();
+    DEFAULT_TASKS.forEach((t, i) => {
+      const ref = configRef.collection('tasks').doc();
+      batch.set(ref, {...t, order: i, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+    toast('✅ Home setup with default tasks');
+  }
+}
+
+function subscribeAll() {
+  if (unsubTasks) unsubTasks();
+  if (unsubDone) unsubDone();
+  if (unsubSpecial) unsubSpecial();
+
+  unsubTasks = db.collection('homes').doc(homeCode).collection('tasks')
+    .orderBy('order').onSnapshot(snap => {
+      tasks = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      renderTasks();
+      renderStatus();
+    });
+
+  const today = new Date().toISOString().slice(0, 10);
+  unsubDone = db.collection('homes').doc(homeCode).collection('done').doc(today)
+    .onSnapshot(doc => {
+      doneMap = (doc.exists ? doc.data() : {}) || {};
+      renderStatus();
+    });
+
+  unsubSpecial = db.collection('homes').doc(homeCode).onSnapshot(doc => {
+    if (doc.exists) {
+      const d = doc.data();
+      weekly = d.weekly || DEFAULT_WEEKLY;
+      monthly = d.monthly || DEFAULT_MONTHLY;
+      laundry = d.laundry || DEFAULT_LAUNDRY;
+      renderSpecial();
+    }
+  });
+}
+
+function shareCode() {
+  const url = window.location.href.replace('employer.html', 'index.html').split('?')[0];
+  const msg = `Namaste! Yeh app kholiye aur code daaliye:\n\nLink: ${url}\nCode: ${homeCode}`;
+  if (navigator.share) navigator.share({title: 'Ghar Kaam', text: msg}).catch(() => {});
+  else navigator.clipboard.writeText(msg).then(() => toast('📋 Copied'));
+}
+
+// ── TASKS LIBRARY ──
+function renderTasks() {
+  const el = document.getElementById('task-list');
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty">Setting up...</div>';
+    return;
+  }
+  el.innerHTML = tasks.map(t => {
+    const badges = [];
+    if (t.freq === 'daily') badges.push('<span class="badge-tag badge-daily">Daily</span>');
+    if (t.freq === 'weekly') badges.push('<span class="badge-tag badge-weekly">' + (t.days || []).join(', ') + '</span>');
+    if (t.freq === 'once') badges.push('<span class="badge-tag badge-once">Today only</span>');
+    if (t.time) badges.push('<span class="badge-tag badge-timed">⏰ ' + t.time + '</span>');
+    return '<div class="task-row">' +
+      '<div class="toggle" onclick="toggleEnabled(\'' + t.id + '\')">' + (t.enabled ? '✅' : '⬜') + '</div>' +
+      '<div class="info">' +
+      '<div class="name' + (t.enabled ? '' : ' off') + '">' + escapeHtml(t.name) + '</div>' +
+      '<div class="meta">' + badges.join('') + '</div>' +
+      '</div>' +
+      '<div class="actions">' +
+      '<button class="icon-btn" onclick="editTask(\'' + t.id + '\')">✎</button>' +
+      '<button class="icon-btn del" onclick="deleteTask(\'' + t.id + '\')">✕</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+async function toggleEnabled(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  await db.collection('homes').doc(homeCode).collection('tasks').doc(id).update({
+    enabled: !t.enabled
+  });
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task permanently?')) return;
+  await db.collection('homes').doc(homeCode).collection('tasks').doc(id).delete();
+  toast('Deleted');
+}
+
+let editingId = null;
+function editTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  editingId = id;
+  document.getElementById('task-name').value = t.name;
+  document.getElementById('task-name-hi').value = t.hi || '';
+  document.getElementById('task-freq').value = t.freq;
+  document.getElementById('task-time').value = t.time || '';
+  selectedDays = [...(t.days || [])];
+  freqChanged();
+  document.querySelectorAll('.dc').forEach(el => {
+    el.classList.toggle('sel', selectedDays.includes(el.dataset.d));
+  });
+  setTab('add');
+  toast('Editing task — save to update');
+}
+
+// ── ADD/EDIT TASK ──
+function freqChanged() {
+  const f = document.getElementById('task-freq').value;
+  document.getElementById('days-field').style.display = f === 'weekly' ? 'block' : 'none';
+}
+
+function toggleDay(el) {
+  el.classList.toggle('sel');
+  const d = el.dataset.d;
+  const i = selectedDays.indexOf(d);
+  if (i > -1) selectedDays.splice(i, 1); else selectedDays.push(d);
+}
+
+async function addTask() {
+  const name = document.getElementById('task-name').value.trim();
+  const hi = document.getElementById('task-name-hi').value.trim() || name;
+  const freq = document.getElementById('task-freq').value;
+  const time = document.getElementById('task-time').value.trim();
+  if (!name) { toast('Enter task name'); return; }
+  if (freq === 'weekly' && selectedDays.length === 0) { toast('Select days'); return; }
+
+  const data = {
+    name, hi, freq, time,
+    days: freq === 'weekly' ? [...selectedDays] : [],
+    enabled: true,
+    order: tasks.length ? Math.max(...tasks.map(t => t.order || 0)) + 1 : 0
+  };
+
+  try {
+    if (editingId) {
+      await db.collection('homes').doc(homeCode).collection('tasks').doc(editingId).update(data);
+      toast('✅ Task updated');
+      editingId = null;
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('homes').doc(homeCode).collection('tasks').add(data);
+      toast('✅ Task added');
+    }
+    document.getElementById('task-name').value = '';
+    document.getElementById('task-name-hi').value = '';
+    document.getElementById('task-time').value = '';
+    document.getElementById('task-freq').value = 'daily';
+    selectedDays = [];
+    document.querySelectorAll('.dc').forEach(el => el.classList.remove('sel'));
+    freqChanged();
+    setTab('tasks');
+  } catch (e) { toast('Error: ' + e.message); }
+}
+
+// ── WEEKLY / MONTHLY / LAUNDRY ──
+function renderSpecial() {
+  // Weekly editor
+  document.getElementById('weekly-editor').innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d =>
+    '<div class="rot-row"><span class="lbl">' + d + '</span>' +
+    '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>'
+  ).join('');
+
+  // Monthly editor
+  document.getElementById('monthly-editor').innerHTML = monthly.map((m, i) =>
+    '<div class="rot-row"><span class="lbl">Sat ' + (i+1) + '</span>' +
+    '<input value="' + escapeAttr(m || '') + '" data-idx="' + i + '" class="mo-inp" placeholder="No task"/></div>'
+  ).join('') || '<div class="empty">No monthly tasks yet</div>';
+
+  // Laundry editor
+  document.getElementById('laundry-editor').innerHTML = DAYS.map(d =>
+    '<div class="rot-row"><span class="lbl">' + d + '</span>' +
+    '<input value="' + escapeAttr(laundry[d] || '') + '" data-day="' + d + '" class="ln-inp" placeholder="No laundry"/></div>'
+  ).join('');
+}
+
+async function saveWeekly() {
+  const updated = {};
+  document.querySelectorAll('.wk-inp').forEach(el => updated[el.dataset.day] = el.value.trim());
+  await db.collection('homes').doc(homeCode).update({ weekly: updated });
+  toast('✅ Weekly saved');
+}
+
+function addMonthlySlot() {
+  monthly.push('');
+  renderSpecial();
+}
+
+async function saveMonthly() {
+  const updated = [];
+  document.querySelectorAll('.mo-inp').forEach(el => {
+    if (el.value.trim()) updated.push(el.value.trim());
+  });
+  await db.collection('homes').doc(homeCode).update({ monthly: updated });
+  toast('✅ Monthly saved');
+}
+
+async function saveLaundry() {
+  const updated = {};
+  document.querySelectorAll('.ln-inp').forEach(el => updated[el.dataset.day] = el.value.trim());
+  await db.collection('homes').doc(homeCode).update({ laundry: updated });
+  toast('✅ Laundry saved');
+}
+
+// ── STATUS ──
+function renderStatus() {
+  const today = new Date();
+  const dayName = DAYS[today.getDay() === 0 ? 6 : today.getDay() - 1];
+  const active = tasks.filter(t => t.enabled).filter(t => {
+    if (t.freq === 'daily') return true;
+    if (t.freq === 'weekly') return (t.days || []).includes(dayName);
+    if (t.freq === 'once') {
+      if (!t.createdAt) return true;
+      const c = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+      return c.toDateString() === today.toDateString();
+    }
+    return false;
+  });
+  const total = active.length;
+  const doneC = active.filter(t => doneMap[t.id]).length;
+  const pct = total ? Math.round(doneC / total * 100) : 0;
+  document.getElementById('status-body').innerHTML =
+    '<div class="stat-grid">' +
+    '<div class="stat-card"><div class="stat-num">' + doneC + ' / ' + total + '</div><div class="stat-lbl">tasks done today</div></div>' +
+    '<div class="stat-card"><div class="stat-num">' + pct + '%</div><div class="stat-lbl">complete</div></div>' +
+    '</div>' +
+    '<div style="background:#E0E0E0;border-radius:20px;height:8px;overflow:hidden"><div style="height:100%;background:#3D7A4A;border-radius:20px;width:' + pct + '%"></div></div>' +
+    '<div style="font-size:12px;color:#888;margin-top:12px;text-align:center">' +
+    (pct === 100 ? '🎉 All tasks done!' : pct >= 50 ? '💪 More than halfway!' : '🌅 Just getting started') + '</div>';
+}
+
+// ── TABS ──
+function setTab(t) {
+  ['tasks','add','special','status'].forEach(x => {
+    document.getElementById('t-'+x).classList.toggle('on', x === t);
+    document.getElementById('p-'+x).style.display = x === t ? 'block' : 'none';
+  });
+}
+
+// ── UTIL ──
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+function toast(m) {
+  const el = document.getElementById('toast');
+  el.textContent = m;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+initApp();
+</script>
+</body>
+</html>
