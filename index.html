@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#3D7A4A"/>
-<title>घर का काम</title>
+<title>Ghar Kaam</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
@@ -76,6 +76,8 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 
 .reset-bar{padding:8px 16px 16px;text-align:center}
 .reset-btn{background:transparent;border:1.5px solid #DDD;border-radius:20px;padding:8px 18px;font-size:12px;color:#888;cursor:pointer}
+
+.empty{text-align:center;padding:60px 20px;color:#888;font-size:14px}
 </style>
 </head>
 <body>
@@ -83,13 +85,13 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 
 <div id="setup" class="setup">
   <div>
-    <div class="setup-logo">🧹 घर का काम</div>
-    <div class="setup-sub">आपका काम देखने के लिए<br/>कोड डालिए</div>
+    <div class="setup-logo">🧹 Ghar Kaam</div>
+    <div class="setup-sub" id="setup-sub">Enter the code<br/>your employer gave you</div>
   </div>
   <div style="width:100%">
     <input class="setup-inp" id="code-inp" placeholder="CODE" maxlength="15" />
   </div>
-  <button class="setup-btn" onclick="setupCode()">शुरू करें →</button>
+  <button class="setup-btn" id="start-btn" onclick="setupCode()">Start →</button>
 </div>
 
 <div id="main" style="display:none;flex-direction:column;flex:1">
@@ -97,12 +99,12 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
   <div class="helper-hdr">
     <span class="hdr-code" id="hdr-code"></span>
     <span class="hdr-icon">🧹</span>
-    <div class="hdr-title" id="h-greeting">आज का काम</div>
-    <div class="hdr-sub">सुनने के लिए ▶ दबाएँ</div>
+    <div class="hdr-title" id="h-greeting">Today's Tasks</div>
+    <div class="hdr-sub" id="h-subtext">Tap ▶ to hear</div>
   </div>
 
   <div id="notif-bar" class="notif-bar" style="display:none">
-    🔔 काम के 5 मिनट पहले सूचना पाएँ
+    🔔 <span id="notif-text">Get reminded 5 min before each task</span>
     <button onclick="enableNotifs()">Enable</button>
   </div>
 
@@ -113,7 +115,7 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
   <div class="body" id="helper-body"></div>
 
   <div class="reset-bar">
-    <button class="reset-btn" onclick="resetDone()">↺ नए दिन के लिए रीसेट करें</button>
+    <button class="reset-btn" id="reset-btn" onclick="resetDone()">↺ Reset for new day</button>
   </div>
 </div>
 
@@ -121,13 +123,84 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 
 <script>
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const DAY_MAP = {Sun:'Sun',Mon:'Mon',Tue:'Tue',Wed:'Wed',Thu:'Thu',Fri:'Fri',Sat:'Sat'};
+const WEEKDAY_KEYS = {Sun:'Sun',Mon:'Mon',Tue:'Tue',Wed:'Wed',Thu:'Thu',Fri:'Fri',Sat:'Sat'};
+
+// UI translations per language
+const UI_STRINGS = {
+  'en-IN': {
+    greeting_morning: 'Good morning! 🌞',
+    greeting_afternoon: 'Namaste! ☀️',
+    greeting_evening: 'Good evening! 🌆',
+    subtext: 'Tap ▶ to hear',
+    setup_sub: 'Enter the code<br/>your employer gave you',
+    start: 'Start →',
+    special: '⭐ Special tasks today',
+    laundry: '🧺 Today\'s laundry',
+    timed: '⏰ Fixed time tasks',
+    anytime: '📋 Do anytime today',
+    done_label: '✓ Done',
+    once_weekly: '⭐ Once a week',
+    once_monthly: '🌟 Once a month',
+    empty: 'No tasks today',
+    progress: 'done',
+    reset_confirm: 'Reset all tasks?',
+    notif_text: 'Get reminded 5 min before each task',
+    reset_btn: '↺ Reset for new day'
+  },
+  'hi-IN': {
+    greeting_morning: 'सुप्रभात! 🌞',
+    greeting_afternoon: 'नमस्ते! ☀️',
+    greeting_evening: 'शाम को नमस्ते! 🌆',
+    subtext: 'सुनने के लिए ▶ दबाएँ',
+    setup_sub: 'आपका काम देखने के लिए<br/>कोड डालिए',
+    start: 'शुरू करें →',
+    special: '⭐ आज के खास काम',
+    laundry: '🧺 आज की धुलाई',
+    timed: '⏰ समय पर करने वाले काम',
+    anytime: '📋 कभी भी करें',
+    done_label: '✓ हो गया',
+    once_weekly: '⭐ हफ्ते में एक बार',
+    once_monthly: '🌟 महीने में एक बार',
+    empty: 'आज कोई काम नहीं है',
+    progress: 'काम हुए',
+    reset_confirm: 'सभी काम रीसेट करें?',
+    notif_text: 'काम के 5 मिनट पहले सूचना पाएँ',
+    reset_btn: '↺ नए दिन के लिए रीसेट करें'
+  },
+  'kn-IN': {
+    greeting_morning: 'ಶುಭೋದಯ! 🌞',
+    greeting_afternoon: 'ನಮಸ್ಕಾರ! ☀️',
+    greeting_evening: 'ಶುಭ ಸಂಜೆ! 🌆',
+    subtext: 'ಕೇಳಲು ▶ ಒತ್ತಿ',
+    setup_sub: 'ನಿಮ್ಮ ಮಾಲೀಕರು ನೀಡಿದ<br/>ಕೋಡ್ ಅನ್ನು ನಮೂದಿಸಿ',
+    start: 'ಪ್ರಾರಂಭಿಸಿ →',
+    special: '⭐ ಇಂದಿನ ವಿಶೇಷ ಕೆಲಸಗಳು',
+    laundry: '🧺 ಇಂದಿನ ಬಟ್ಟೆ ಒಗೆಯುವಿಕೆ',
+    timed: '⏰ ನಿಗದಿತ ಸಮಯದ ಕೆಲಸಗಳು',
+    anytime: '📋 ಯಾವಾಗ ಬೇಕಾದರೂ ಮಾಡಿ',
+    done_label: '✓ ಮಾಡಿಯಾಗಿದೆ',
+    once_weekly: '⭐ ವಾರಕ್ಕೊಮ್ಮೆ',
+    once_monthly: '🌟 ತಿಂಗಳಿಗೊಮ್ಮೆ',
+    empty: 'ಇಂದು ಯಾವುದೇ ಕೆಲಸಗಳಿಲ್ಲ',
+    progress: 'ಪೂರ್ಣಗೊಂಡಿದೆ',
+    reset_confirm: 'ಎಲ್ಲಾ ಕೆಲಸಗಳನ್ನು ಮರುಹೊಂದಿಸುವುದೇ?',
+    notif_text: 'ಪ್ರತಿ ಕೆಲಸಕ್ಕೂ 5 ನಿಮಿಷ ಮೊದಲು ನೆನಪಿಸಿ',
+    reset_btn: '↺ ಹೊಸ ದಿನಕ್ಕೆ ಮರುಹೊಂದಿಸಿ'
+  }
+  // Other languages fall back to English if not translated
+};
+
+function T(key) {
+  const strs = UI_STRINGS[language] || UI_STRINGS['en-IN'];
+  return strs[key] || UI_STRINGS['en-IN'][key] || key;
+}
 
 let homeCode = null;
 let tasks = [];
 let weekly = {};
 let monthly = [];
 let laundry = {};
+let language = 'en-IN';
 let doneMap = {};
 let selectedDay = null;
 let speakingId = null;
@@ -136,11 +209,17 @@ let unsubTasks = null, unsubDone = null, unsubConfig = null;
 function initApp() {
   homeCode = localStorage.getItem('gk_home_code');
   if (homeCode) showMain();
+  else showSetup();
+}
+
+function showSetup() {
+  document.getElementById('setup').style.display = 'flex';
+  document.getElementById('main').style.display = 'none';
 }
 
 function setupCode() {
   const code = document.getElementById('code-inp').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
-  if (!code || code.length < 3) { alert('कोड डालिए (3+ characters)'); return; }
+  if (!code || code.length < 3) { alert('Enter valid code (min 3 characters)'); return; }
   homeCode = code;
   localStorage.setItem('gk_home_code', homeCode);
   showMain();
@@ -159,10 +238,14 @@ function initGreeting() {
   const now = new Date();
   selectedDay = DAYS[now.getDay()];
   const h = now.getHours();
-  document.getElementById('h-greeting').textContent = h < 12 ? 'सुप्रभात! 🌞' : h < 17 ? 'नमस्ते! ☀️' : 'शाम को नमस्ते! 🌆';
+  const greetKey = h < 12 ? 'greeting_morning' : h < 17 ? 'greeting_afternoon' : 'greeting_evening';
+  document.getElementById('h-greeting').textContent = T(greetKey);
+  document.getElementById('h-subtext').textContent = T('subtext');
   document.getElementById('day-bar').innerHTML = DAYS.map(d =>
     '<button class="day-btn' + (d === selectedDay ? ' on' : '') + '" onclick="selectDay(\'' + d + '\')">' + d + '</button>'
   ).join('');
+  document.getElementById('reset-btn').textContent = T('reset_btn');
+  document.getElementById('notif-text').textContent = T('notif_text');
 }
 
 function selectDay(d) {
@@ -196,6 +279,8 @@ function subscribeAll() {
       weekly = d.weekly || {};
       monthly = d.monthly || [];
       laundry = d.laundry || {};
+      language = d.language || 'en-IN';
+      initGreeting();
       render();
       scheduleNotifications();
     }
@@ -211,6 +296,10 @@ function getTasksForDay(day) {
     if (!t.enabled) return false;
     if (t.freq === 'daily') return true;
     if (t.freq === 'weekly') return (t.days || []).includes(day);
+    if (t.freq === 'monthly') {
+      // Show on the 1st Saturday of month by default (or 1st day of month if not Sat)
+      return day === 'Sat';
+    }
     if (t.freq === 'once') {
       if (!t.createdAt) return true;
       const c = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
@@ -222,23 +311,15 @@ function getTasksForDay(day) {
 }
 
 function getWeeklyForDay(day) {
-  // Only show weekly special task on its assigned day, based on config
-  if (weekly[day]) return {id:'w-'+day, hi: weekly[day], kind:'weekly'};
+  if (weekly[day]) return {id:'w-'+day, text: weekly[day], kind:'weekly'};
   return null;
 }
 
 function getMonthlyForToday() {
-  // Only appears on Saturdays
-  const today = new Date();
-  if (DAYS[today.getDay()] !== 'Sat' || selectedDay !== 'Sat') return null;
+  if (selectedDay !== 'Sat') return null;
   if (!monthly.length) return null;
   const idx = (getSatWeekOfMonth() - 1) % monthly.length;
-  return {id:'m-'+idx, hi: monthly[idx], kind:'monthly'};
-}
-
-function getLaundryTaskId() {
-  // Enhance laundry task on daily tasks list, if any
-  return null;
+  return {id:'m-'+idx, text: monthly[idx], kind:'monthly'};
 }
 
 function render() {
@@ -247,70 +328,65 @@ function render() {
   const anytime = dayTasks.filter(t => !t.time);
   const wk = getWeeklyForDay(selectedDay);
   const mo = getMonthlyForToday();
-
-  // Add laundry to anytime as a special note (append to first laundry-like task or as its own)
   const laundryToday = laundry[selectedDay];
 
   // Progress
   const allForProgress = [...timed, ...anytime];
   if (wk) allForProgress.push({id: wk.id});
   if (mo) allForProgress.push({id: mo.id});
+  if (laundryToday) allForProgress.push({id: 'laundry-' + selectedDay});
   const total = allForProgress.length;
   const doneC = allForProgress.filter(t => doneMap[t.id]).length;
   const pct = total ? Math.round(doneC / total * 100) : 0;
-  document.getElementById('h-prog-lbl').textContent = doneC + ' / ' + total + ' काम हुए (' + pct + '%)';
+  document.getElementById('h-prog-lbl').textContent = doneC + ' / ' + total + ' ' + T('progress') + ' (' + pct + '%)';
   document.getElementById('h-prog-fill').style.width = pct + '%';
 
   let html = '';
 
-  // Weekly + monthly at top (special tasks with reminders)
   if (wk || mo) {
-    html += '<div class="section-hdr">⭐ आज के खास काम</div>';
+    html += '<div class="section-hdr">' + T('special') + '</div>';
     if (mo) html += renderTask(mo);
     if (wk) html += renderTask(wk);
   }
 
-  // Laundry reminder as a note
   if (laundryToday) {
-    html += '<div class="section-hdr">🧺 आज की धुलाई</div>';
-    html += renderTask({id: 'laundry-' + selectedDay, hi: laundryToday, kind: 'weekly'});
+    html += '<div class="section-hdr">' + T('laundry') + '</div>';
+    html += renderTask({id: 'laundry-' + selectedDay, text: laundryToday, kind: 'weekly'});
   }
 
-  // Timed tasks
   if (timed.length) {
-    html += '<div class="section-hdr">⏰ समय पर करने वाले काम <span class="section-count">' + timed.length + '</span></div>';
-    html += timed.map(t => renderTask(t, true)).join('');
+    html += '<div class="section-hdr">' + T('timed') + ' <span class="section-count">' + timed.length + '</span></div>';
+    html += timed.map(t => renderTask({id: t.id, text: t.name, time: t.time, kind: 'timed'})).join('');
   }
 
-  // Anytime tasks
   if (anytime.length) {
-    html += '<div class="section-hdr">📋 कभी भी करें <span class="section-count">' + anytime.length + '</span></div>';
-    html += anytime.map(t => renderTask(t)).join('');
+    html += '<div class="section-hdr">' + T('anytime') + ' <span class="section-count">' + anytime.length + '</span></div>';
+    html += anytime.map(t => renderTask({id: t.id, text: t.name})).join('');
   }
 
   if (!timed.length && !anytime.length && !wk && !mo && !laundryToday) {
-    html = '<div style="text-align:center;padding:60px 20px;color:#888">आज कोई काम नहीं है</div>';
+    html = '<div class="empty">' + T('empty') + '</div>';
   }
 
   document.getElementById('helper-body').innerHTML = html;
 }
 
-function renderTask(t, isTimed) {
+function renderTask(t) {
   const isDone = doneMap[t.id];
   const isSpeaking = speakingId === t.id;
-  const kind = t.kind || (isTimed ? 'timed' : '');
+  const kind = t.kind || '';
   const classes = 'task-card' + (isDone ? ' done' : '') + (isSpeaking ? ' speaking' : '') + (kind ? ' ' + kind : '');
   let badge = '';
-  if (kind === 'weekly')  badge = '<div class="badge badge-w">⭐ हफ्ते में एक बार</div>';
-  if (kind === 'monthly') badge = '<div class="badge badge-m">🌟 महीने में एक बार</div>';
+  if (kind === 'weekly')  badge = '<div class="badge badge-w">' + T('once_weekly') + '</div>';
+  if (kind === 'monthly') badge = '<div class="badge badge-m">' + T('once_monthly') + '</div>';
 
   return '<div class="' + classes + '">' +
     '<button class="play-btn" onclick="speakTask(\'' + t.id + '\')">' + (isSpeaking ? '🔊' : '▶') + '</button>' +
     '<div class="task-info">' +
     (t.time ? '<div class="ttime">⏰ ' + t.time + '</div>' : '') +
     badge +
-    '<div class="tname">' + escapeHtml(t.hi || t.name) + '</div>' +
-    (isDone ? '<div class="tmeta">✓ हो गया</div>' : '') +
+    '<div class="tname">' + escapeHtml(t.text) + '</div>' +
+    (isDone ? '<div class="tmeta">' + T('done_label') + '</div>' : '') +
     '</div>' +
     '<button class="check-btn" onclick="toggleDone(\'' + t.id + '\')">' + (isDone ? '✅' : '⭕') + '</button>' +
     '</div>';
@@ -320,20 +396,21 @@ function speakTask(id) {
   if (!window.speechSynthesis) return;
   let text = null;
   const t = tasks.find(x => x.id === id);
-  if (t) text = t.hi || t.name;
-  else if (id.startsWith('w-')) { const day = id.slice(2); text = weekly[day]; }
-  else if (id.startsWith('m-')) { const idx = parseInt(id.slice(2)); text = monthly[idx]; }
-  else if (id.startsWith('laundry-')) { const day = id.slice(8); text = laundry[day]; }
+  if (t) text = t.name;
+  else if (id.startsWith('w-')) text = weekly[id.slice(2)];
+  else if (id.startsWith('m-')) text = monthly[parseInt(id.slice(2))];
+  else if (id.startsWith('laundry-')) text = laundry[id.slice(8)];
   if (!text) return;
 
   window.speechSynthesis.cancel();
   speakingId = id;
   render();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'hi-IN'; u.rate = 0.82;
+  u.lang = language;
+  u.rate = 0.85;
   const voices = window.speechSynthesis.getVoices();
-  const hv = voices.find(v => v.lang === 'hi-IN');
-  if (hv) u.voice = hv;
+  const v = voices.find(x => x.lang === language) || voices.find(x => x.lang.startsWith(language.split('-')[0]));
+  if (v) u.voice = v;
   u.onend = u.onerror = () => { speakingId = null; render(); };
   window.speechSynthesis.speak(u);
 }
@@ -354,7 +431,7 @@ async function toggleDone(id) {
 }
 
 async function resetDone() {
-  if (!confirm('सभी काम रीसेट करें?')) return;
+  if (!confirm(T('reset_confirm'))) return;
   doneMap = {}; render();
   const today = new Date().toISOString().slice(0, 10);
   try { await db.collection('homes').doc(homeCode).collection('done').doc(today).set({}); } catch(e) {}
@@ -405,15 +482,15 @@ function scheduleNotifications() {
   const today = DAYS[new Date().getDay()];
   const dayTasks = getTasksForDay(today);
   const timedTasks = dayTasks.filter(t => t.time).map(t => ({
-    id: t.id, name: t.hi || t.name, time: t.time
+    id: t.id, name: t.name, time: t.time
   }));
 
   const morningTasks = [];
   const wk = getWeeklyForDay(today);
-  if (wk) morningTasks.push({id: wk.id, name: wk.hi});
+  if (wk) morningTasks.push({id: wk.id, name: wk.text});
   if (today === 'Sat') {
     const mo = getMonthlyForToday();
-    if (mo) morningTasks.push({id: mo.id, name: mo.hi});
+    if (mo) morningTasks.push({id: mo.id, name: mo.text});
   }
   if (laundry[today]) morningTasks.push({id: 'laundry-' + today, name: laundry[today]});
 
