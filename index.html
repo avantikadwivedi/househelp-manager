@@ -166,28 +166,7 @@ const UI_STRINGS = {
     reset_confirm: 'सभी काम रीसेट करें?',
     notif_text: 'काम के 5 मिनट पहले सूचना पाएँ',
     reset_btn: '↺ नए दिन के लिए रीसेट करें'
-  },
-  'kn-IN': {
-    greeting_morning: 'ಶುಭೋದಯ! 🌞',
-    greeting_afternoon: 'ನಮಸ್ಕಾರ! ☀️',
-    greeting_evening: 'ಶುಭ ಸಂಜೆ! 🌆',
-    subtext: 'ಕೇಳಲು ▶ ಒತ್ತಿ',
-    setup_sub: 'ನಿಮ್ಮ ಮಾಲೀಕರು ನೀಡಿದ<br/>ಕೋಡ್ ಅನ್ನು ನಮೂದಿಸಿ',
-    start: 'ಪ್ರಾರಂಭಿಸಿ →',
-    special: '⭐ ಇಂದಿನ ವಿಶೇಷ ಕೆಲಸಗಳು',
-    laundry: '🧺 ಇಂದಿನ ಬಟ್ಟೆ ಒಗೆಯುವಿಕೆ',
-    timed: '⏰ ನಿಗದಿತ ಸಮಯದ ಕೆಲಸಗಳು',
-    anytime: '📋 ಯಾವಾಗ ಬೇಕಾದರೂ ಮಾಡಿ',
-    done_label: '✓ ಮಾಡಿಯಾಗಿದೆ',
-    once_weekly: '⭐ ವಾರಕ್ಕೊಮ್ಮೆ',
-    once_monthly: '🌟 ತಿಂಗಳಿಗೊಮ್ಮೆ',
-    empty: 'ಇಂದು ಯಾವುದೇ ಕೆಲಸಗಳಿಲ್ಲ',
-    progress: 'ಪೂರ್ಣಗೊಂಡಿದೆ',
-    reset_confirm: 'ಎಲ್ಲಾ ಕೆಲಸಗಳನ್ನು ಮರುಹೊಂದಿಸುವುದೇ?',
-    notif_text: 'ಪ್ರತಿ ಕೆಲಸಕ್ಕೂ 5 ನಿಮಿಷ ಮೊದಲು ನೆನಪಿಸಿ',
-    reset_btn: '↺ ಹೊಸ ದಿನಕ್ಕೆ ಮರುಹೊಂದಿಸಿ'
   }
-  // Other languages fall back to English if not translated
 };
 
 function T(key) {
@@ -279,7 +258,9 @@ function subscribeAll() {
       weekly = d.weekly || {};
       monthly = d.monthly || [];
       laundry = d.laundry || {};
-      language = d.language || 'en-IN';
+      // Only support English or Hindi — fallback anything else to English
+      const savedLang = d.language || 'en-IN';
+      language = (savedLang === 'hi-IN') ? 'hi-IN' : 'en-IN';
       initGreeting();
       render();
       scheduleNotifications();
@@ -383,7 +364,7 @@ function renderTask(t) {
   return '<div class="' + classes + '">' +
     '<button class="play-btn" onclick="speakTask(\'' + t.id + '\')">' + (isSpeaking ? '🔊' : '▶') + '</button>' +
     '<div class="task-info">' +
-    (t.time ? '<div class="ttime">⏰ ' + t.time + '</div>' : '') +
+    (t.time ? '<div class="ttime">⏰ ' + formatTime12(t.time) + '</div>' : '') +
     badge +
     '<div class="tname">' + escapeHtml(t.text) + '</div>' +
     (isDone ? '<div class="tmeta">' + T('done_label') + '</div>' : '') +
@@ -505,6 +486,17 @@ function timeToMinutes(t) {
   if (!t) return 0;
   const parts = t.split(':');
   return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+}
+
+function formatTime12(t) {
+  if (!t) return '';
+  const parts = t.split(':');
+  let h = parseInt(parts[0]);
+  const m = parts[1] || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return h + ':' + m + ' ' + ampm;
 }
 
 function escapeHtml(s) {

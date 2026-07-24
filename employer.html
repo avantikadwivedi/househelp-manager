@@ -98,6 +98,7 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 .rot-row input{flex:1;padding:8px 10px;border:1px solid #E0D0C0;border-radius:8px;font-size:13px;background:#F9F5F0;color:#1a1a1a;outline:none}
 
 .section-hdr{font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:0 4px 8px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.section-count-inline{background:#F0E0D0;color:#8B6F5C;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
 
 .lang-btn-grp{display:flex;gap:8px;flex-wrap:wrap}
 .lang-btn{flex:1;min-width:100px;padding:10px 12px;border:1.5px solid #E0D0C0;background:#F9F5F0;border-radius:10px;font-size:13px;font-weight:600;color:#666;cursor:pointer}
@@ -146,7 +147,7 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
     <!-- TASKS TAB -->
     <div id="p-tasks">
       <div class="helper-link">
-        <div><strong>📱 Share with maid</strong></div>
+        <div><strong>📱 Share with household help</strong></div>
         <div style="margin-top:4px">Code: <strong id="show-code"></strong></div>
         <button class="copy-btn" onclick="shareCode()">📋 Copy link + code</button>
       </div>
@@ -194,11 +195,11 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
     <!-- SETTINGS TAB -->
     <div id="p-settings" style="display:none">
       <div class="card">
-        <h3>🗣️ Voice & Language</h3>
-        <div class="hint">Select the language for tasks in your maid's app. The play button will read tasks in this language.</div>
+        <h3>🗣️ Language for Household Help App</h3>
+        <div class="hint">Choose the language for your household help's app interface and voice.</div>
         <div class="lang-btn-grp" id="lang-btns"></div>
         <div style="margin-top:12px;font-size:12px;color:#888;line-height:1.6">
-          💡 Task descriptions should be written in the same language for best voice results. English tasks read in English; Hindi tasks read in Hindi.
+          💡 Type task descriptions in the same language for the voice to sound natural.
         </div>
       </div>
 
@@ -241,7 +242,7 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
       </div>
       <div class="field">
         <label>Time (optional)</label>
-        <input id="task-time" placeholder="e.g., 10:00" />
+        <input id="task-time" type="time" />
       </div>
     </div>
 
@@ -273,15 +274,8 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 <script>
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const LANGUAGES = [
-  {code: 'en-IN', label: 'English (Indian)'},
-  {code: 'hi-IN', label: 'हिन्दी (Hindi)'},
-  {code: 'kn-IN', label: 'ಕನ್ನಡ (Kannada)'},
-  {code: 'ta-IN', label: 'தமிழ் (Tamil)'},
-  {code: 'te-IN', label: 'తెలుగు (Telugu)'},
-  {code: 'ml-IN', label: 'മലയാളം (Malayalam)'},
-  {code: 'mr-IN', label: 'मराठी (Marathi)'},
-  {code: 'bn-IN', label: 'বাংলা (Bengali)'},
-  {code: 'gu-IN', label: 'ગુજરાતી (Gujarati)'}
+  {code: 'en-IN', label: 'English'},
+  {code: 'hi-IN', label: 'हिन्दी (Hindi)'}
 ];
 
 let homeCode = null;
@@ -394,25 +388,53 @@ function renderTasks() {
       '</div>';
     return;
   }
-  el.innerHTML = tasks.map(t => {
-    const badges = [];
-    if (t.freq === 'daily')   badges.push('<span class="badge-tag badge-daily">Daily</span>');
-    if (t.freq === 'weekly')  badges.push('<span class="badge-tag badge-weekly">' + (t.days || []).join(', ') + '</span>');
-    if (t.freq === 'monthly') badges.push('<span class="badge-tag badge-monthly">Monthly</span>');
-    if (t.freq === 'once')    badges.push('<span class="badge-tag badge-once">Today only</span>');
-    if (t.time)               badges.push('<span class="badge-tag badge-timed">⏰ ' + t.time + '</span>');
-    return '<div class="task-row">' +
-      '<div class="toggle" onclick="toggleEnabled(\'' + t.id + '\')">' + (t.enabled ? '✅' : '⬜') + '</div>' +
-      '<div class="info">' +
-      '<div class="name' + (t.enabled ? '' : ' off') + '">' + escapeHtml(t.name) + '</div>' +
-      '<div class="meta">' + badges.join('') + '</div>' +
-      '</div>' +
-      '<div class="actions">' +
-      '<button class="icon-btn" onclick="editTask(\'' + t.id + '\')">✎</button>' +
-      '<button class="icon-btn del" onclick="deleteTask(\'' + t.id + '\')">✕</button>' +
-      '</div>' +
-      '</div>';
-  }).join('');
+
+  // Split tasks into groups matching maid's view
+  const timed = tasks.filter(t => t.time).sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  const anytime = tasks.filter(t => !t.time && t.freq !== 'weekly' && t.freq !== 'monthly');
+  const special = tasks.filter(t => !t.time && (t.freq === 'weekly' || t.freq === 'monthly'));
+
+  let html = '';
+
+  // Special tasks section (weekly/monthly without time)
+  if (special.length) {
+    html += '<div class="section-hdr" style="text-transform:uppercase;padding:8px 4px">⭐ Special tasks <span class="section-count-inline">' + special.length + '</span></div>';
+    html += special.map(renderTaskRow).join('');
+  }
+
+  // Timed tasks
+  if (timed.length) {
+    html += '<div class="section-hdr" style="text-transform:uppercase;padding:14px 4px 8px">⏰ Fixed time tasks <span class="section-count-inline">' + timed.length + '</span></div>';
+    html += timed.map(renderTaskRow).join('');
+  }
+
+  // Anytime tasks
+  if (anytime.length) {
+    html += '<div class="section-hdr" style="text-transform:uppercase;padding:14px 4px 8px">📋 Do anytime today <span class="section-count-inline">' + anytime.length + '</span></div>';
+    html += anytime.map(renderTaskRow).join('');
+  }
+
+  el.innerHTML = html;
+}
+
+function renderTaskRow(t) {
+  const badges = [];
+  if (t.freq === 'daily')   badges.push('<span class="badge-tag badge-daily">Daily</span>');
+  if (t.freq === 'weekly')  badges.push('<span class="badge-tag badge-weekly">' + (t.days || []).join(', ') + '</span>');
+  if (t.freq === 'monthly') badges.push('<span class="badge-tag badge-monthly">Monthly</span>');
+  if (t.freq === 'once')    badges.push('<span class="badge-tag badge-once">Today only</span>');
+  if (t.time)               badges.push('<span class="badge-tag badge-timed">⏰ ' + formatTime12(t.time) + '</span>');
+  return '<div class="task-row">' +
+    '<div class="toggle" onclick="toggleEnabled(\'' + t.id + '\')">' + (t.enabled ? '✅' : '⬜') + '</div>' +
+    '<div class="info">' +
+    '<div class="name' + (t.enabled ? '' : ' off') + '">' + escapeHtml(t.name) + '</div>' +
+    '<div class="meta">' + badges.join('') + '</div>' +
+    '</div>' +
+    '<div class="actions">' +
+    '<button class="icon-btn" onclick="editTask(\'' + t.id + '\')">✎</button>' +
+    '<button class="icon-btn del" onclick="deleteTask(\'' + t.id + '\')">✕</button>' +
+    '</div>' +
+    '</div>';
 }
 
 async function toggleEnabled(id) {
@@ -600,6 +622,23 @@ function setTab(t) {
 }
 
 // ── UTIL ──
+function timeToMinutes(t) {
+  if (!t) return 0;
+  const parts = t.split(':');
+  return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+}
+
+function formatTime12(t) {
+  if (!t) return '';
+  const parts = t.split(':');
+  let h = parseInt(parts[0]);
+  const m = parts[1] || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return h + ':' + m + ' ' + ampm;
+}
+
 function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s) { return escapeHtml(s); }
 function toast(m) {
