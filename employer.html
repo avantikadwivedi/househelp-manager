@@ -96,6 +96,11 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 .non-daily-item{background:#fff;border:1px solid #EEE;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:13px;color:#1a1a1a;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .non-daily-item .lbl{font-size:11px;color:#666;font-weight:600;min-width:60px}
 .non-daily-item .txt{flex:1;color:#1a1a1a}
+
+.rot-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.rot-row .lbl{width:52px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;flex-shrink:0}
+.rot-row input{flex:1;padding:9px 11px;border:1px solid #E0D0C0;border-radius:8px;font-size:13px;background:#F9F5F0;color:#1a1a1a;outline:none}
+.rot-row input:focus{border-color:#C0622A;background:#fff}
 </style>
 </head>
 <body>
@@ -127,8 +132,8 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 
   <div class="tabs">
     <button class="tab on" id="t-today" onclick="setTab('today')">📋 Today's tasks</button>
-    <button class="tab" id="t-nondaily" onclick="setTab('nondaily')">⭐ Non-daily tasks</button>
     <button class="tab" id="t-add" onclick="setTab('add')">➕ Add tasks</button>
+    <button class="tab" id="t-nondaily" onclick="setTab('nondaily')">⭐ Weekly/Monthly editor</button>
   </div>
 
   <div class="body">
@@ -144,24 +149,39 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
       <div id="today-list"></div>
     </div>
 
-    <!-- NON-DAILY TASKS TAB (read-only summary) -->
+    <!-- NON-DAILY TASKS TAB (editor + summary) -->
     <div id="p-nondaily" style="display:none">
       <div class="card">
-        <h3>⭐ Weekly tasks</h3>
-        <div class="hint">Tasks done on specific days of the week.</div>
+        <h3>⭐ Weekly rotation (by day)</h3>
+        <div class="hint">One special task per day (Mon–Fri). Reminder at 8 AM + evening nudge.</div>
+        <div id="weekly-editor"></div>
+        <button class="btn" onclick="saveWeekly()">Save Weekly Rotation</button>
+      </div>
+
+      <div class="card">
+        <h3>🌟 Monthly rotation (Saturdays)</h3>
+        <div class="hint">Rotates across Saturdays. Week 1 = task 1, Week 2 = task 2, etc.</div>
+        <div id="monthly-editor"></div>
+        <button class="btn secondary" onclick="addMonthlySlot()" style="margin-bottom:8px">+ Add another slot</button>
+        <button class="btn" onclick="saveMonthly()">Save Monthly Rotation</button>
+      </div>
+
+      <div class="card">
+        <h3>🧺 Laundry rotation (by day)</h3>
+        <div class="hint">What clothes to wash each day.</div>
+        <div id="laundry-editor"></div>
+        <button class="btn" onclick="saveLaundry()">Save Laundry Rotation</button>
+      </div>
+
+      <div class="card">
+        <h3>📋 Individual weekly / monthly tasks</h3>
+        <div class="hint">Tasks you added via "➕ Add tasks".</div>
+
+        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:12px 4px 6px;text-transform:uppercase">Weekly</div>
         <div id="weekly-list"></div>
-      </div>
 
-      <div class="card">
-        <h3>🌟 Monthly tasks</h3>
-        <div class="hint">Tasks done once a month.</div>
+        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:12px 4px 6px;text-transform:uppercase">Monthly</div>
         <div id="monthly-list"></div>
-      </div>
-
-      <div class="card">
-        <h3>✨ One-time tasks</h3>
-        <div class="hint">Added for today only.</div>
-        <div id="once-list"></div>
       </div>
     </div>
 
@@ -296,6 +316,9 @@ const LANGUAGES = [
 
 let homeCode = null;
 let tasks = [];
+let weekly = {};
+let monthly = [];
+let laundry = {};
 let doneMap = {};
 let selectedDays = [];
 let editSelectedDays = [];
@@ -373,6 +396,11 @@ function subscribeAll() {
       const d = doc.data();
       const savedLang = d.language || 'en-IN';
       selectedShareLang = (savedLang === 'hi-IN') ? 'hi-IN' : 'en-IN';
+      weekly = d.weekly || {};
+      monthly = d.monthly || [];
+      laundry = d.laundry || {};
+      renderRotations();
+      renderToday();
     }
   });
 }
@@ -442,7 +470,24 @@ function renderToday() {
   const el = document.getElementById('today-list');
   const todayTasks = tasks.filter(isTaskForToday);
 
-  if (!todayTasks.length) {
+  // Get today's day name (using Sun-Sat since laundry uses that)
+  const today = new Date();
+  const dayFullNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayName = dayFullNames[today.getDay()];
+
+  // Get rotation entries for today
+  const weeklyToday = weekly[dayName] ? {id: 'rot-w-' + dayName, text: weekly[dayName], kind: 'weekly'} : null;
+  const laundryToday = laundry[dayName] ? {id: 'rot-l-' + dayName, text: laundry[dayName], kind: 'weekly'} : null;
+  let monthlyToday = null;
+  if (dayName === 'Sat' && monthly.length) {
+    const weekOfMonth = Math.ceil(today.getDate() / 7);
+    const idx = (weekOfMonth - 1) % monthly.length;
+    monthlyToday = {id: 'rot-m-' + idx, text: monthly[idx], kind: 'monthly'};
+  }
+
+  const hasAnything = todayTasks.length || weeklyToday || laundryToday || monthlyToday;
+
+  if (!hasAnything) {
     el.innerHTML = '<div class="empty-tasks">' +
       '<span class="icon">📝</span>' +
       '<strong>No tasks today</strong><br/>' +
@@ -456,10 +501,24 @@ function renderToday() {
   const special = todayTasks.filter(t => !t.time && t.freq !== 'daily');
 
   let html = '';
-  if (special.length) {
-    html += '<div class="section-hdr">⭐ Special tasks <span class="section-count-inline">' + special.length + '</span></div>';
-    html += special.map(renderTodayRow).join('');
+
+  // Special tasks section — rotations first, then individual special tasks
+  const specialItems = [];
+  if (monthlyToday) specialItems.push(monthlyToday);
+  if (weeklyToday) specialItems.push(weeklyToday);
+  specialItems.push(...special);
+
+  if (specialItems.length) {
+    html += '<div class="section-hdr">⭐ Special tasks <span class="section-count-inline">' + specialItems.length + '</span></div>';
+    html += specialItems.map(item => item.text ? renderRotationRow(item) : renderTodayRow(item)).join('');
   }
+
+  // Laundry section (own callout so it's easy to see)
+  if (laundryToday) {
+    html += '<div class="section-hdr" style="padding-top:14px">🧺 Today\'s laundry</div>';
+    html += renderRotationRow(laundryToday);
+  }
+
   if (timed.length) {
     html += '<div class="section-hdr" style="padding-top:14px">⏰ Fixed time tasks <span class="section-count-inline">' + timed.length + '</span></div>';
     html += timed.map(renderTodayRow).join('');
@@ -469,6 +528,17 @@ function renderToday() {
     html += anytime.map(renderTodayRow).join('');
   }
   el.innerHTML = html;
+}
+
+function renderRotationRow(item) {
+  return '<div class="task-row">' +
+    '<span class="toggle">' + (doneMap[item.id] ? '✅' : '⬜') + '</span>' +
+    '<div class="info">' +
+    '<div class="name">' + escapeHtml(item.text) + '</div>' +
+    '<div class="meta"><span class="badge-tag ' + (item.kind === 'monthly' ? 'badge-monthly' : 'badge-weekly') + '">' +
+    (item.kind === 'monthly' ? '🌟 Monthly rotation' : '⭐ Rotation') + '</span></div>' +
+    '</div>' +
+    '</div>';
 }
 
 function renderTodayRow(t) {
@@ -491,19 +561,21 @@ function renderTodayRow(t) {
 function renderNonDaily() {
   const weekly = tasks.filter(t => t.freq === 'weekly');
   const monthly = tasks.filter(t => t.freq === 'monthly');
-  const once = tasks.filter(t => t.freq === 'once');
 
-  document.getElementById('weekly-list').innerHTML = weekly.length
-    ? weekly.map(t => renderNonDailyRow(t)).join('')
-    : '<div style="color:#aaa;font-size:12px;padding:4px 0">No weekly tasks yet</div>';
+  const weeklyEl = document.getElementById('weekly-list');
+  const monthlyEl = document.getElementById('monthly-list');
 
-  document.getElementById('monthly-list').innerHTML = monthly.length
-    ? monthly.map(t => renderNonDailyRow(t)).join('')
-    : '<div style="color:#aaa;font-size:12px;padding:4px 0">No monthly tasks yet</div>';
+  if (weeklyEl) {
+    weeklyEl.innerHTML = weekly.length
+      ? weekly.map(t => renderNonDailyRow(t)).join('')
+      : '<div style="color:#aaa;font-size:12px;padding:4px 0">No weekly tasks yet</div>';
+  }
 
-  document.getElementById('once-list').innerHTML = once.length
-    ? once.map(t => renderNonDailyRow(t)).join('')
-    : '<div style="color:#aaa;font-size:12px;padding:4px 0">No one-time tasks yet</div>';
+  if (monthlyEl) {
+    monthlyEl.innerHTML = monthly.length
+      ? monthly.map(t => renderNonDailyRow(t)).join('')
+      : '<div style="color:#aaa;font-size:12px;padding:4px 0">No monthly tasks yet</div>';
+  }
 }
 
 function renderNonDailyRow(t) {
@@ -652,7 +724,69 @@ function setTab(t) {
     document.getElementById('t-'+x).classList.toggle('on', x === t);
     document.getElementById('p-'+x).style.display = x === t ? 'block' : 'none';
   });
+  if (t === 'nondaily') renderRotations();
 }
+
+// ── ROTATION EDITORS (day-of-week views) ──
+function renderRotations() {
+  const wkEl = document.getElementById('weekly-editor');
+  if (wkEl) {
+    wkEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d =>
+      '<div class="rot-row"><span class="lbl">' + d + '</span>' +
+      '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>'
+    ).join('');
+  }
+
+  const moEl = document.getElementById('monthly-editor');
+  if (moEl) {
+    const list = monthly.length ? monthly : [''];
+    moEl.innerHTML = list.map((m, i) =>
+      '<div class="rot-row"><span class="lbl">Sat ' + (i+1) + '</span>' +
+      '<input value="' + escapeAttr(m || '') + '" data-idx="' + i + '" class="mo-inp" placeholder="Monthly task ' + (i+1) + '"/></div>'
+    ).join('');
+  }
+
+  const lnEl = document.getElementById('laundry-editor');
+  if (lnEl) {
+    lnEl.innerHTML = DAYS.map(d =>
+      '<div class="rot-row"><span class="lbl">' + d + '</span>' +
+      '<input value="' + escapeAttr(laundry[d] || '') + '" data-day="' + d + '" class="ln-inp" placeholder="No laundry"/></div>'
+    ).join('');
+  }
+}
+
+async function saveWeekly() {
+  const updated = {};
+  document.querySelectorAll('.wk-inp').forEach(el => updated[el.dataset.day] = el.value.trim());
+  await db.collection('homes').doc(homeCode).update({weekly: updated});
+  toast('✅ Weekly rotation saved');
+}
+
+function addMonthlySlot() {
+  const inputs = document.querySelectorAll('.mo-inp');
+  const cur = Array.from(inputs).map(el => el.value.trim());
+  monthly = cur;
+  monthly.push('');
+  renderRotations();
+}
+
+async function saveMonthly() {
+  const updated = [];
+  document.querySelectorAll('.mo-inp').forEach(el => {
+    if (el.value.trim()) updated.push(el.value.trim());
+  });
+  await db.collection('homes').doc(homeCode).update({monthly: updated});
+  toast('✅ Monthly rotation saved');
+}
+
+async function saveLaundry() {
+  const updated = {};
+  document.querySelectorAll('.ln-inp').forEach(el => updated[el.dataset.day] = el.value.trim());
+  await db.collection('homes').doc(homeCode).update({laundry: updated});
+  toast('✅ Laundry rotation saved');
+}
+
+function escapeAttr(s) { return escapeHtml(s); }
 
 // ── UTIL ──
 function timeToMinutes(t) {
