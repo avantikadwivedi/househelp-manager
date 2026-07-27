@@ -101,6 +101,10 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 .rot-row .lbl{width:52px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;flex-shrink:0}
 .rot-row input{flex:1;padding:9px 11px;border:1px solid #E0D0C0;border-radius:8px;font-size:13px;background:#F9F5F0;color:#1a1a1a;outline:none}
 .rot-row input:focus{border-color:#C0622A;background:#fff}
+
+.chip-row{padding:4px 0 8px 60px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.chip-lbl{font-size:10px;color:#999;font-weight:600;margin-right:2px}
+.task-chip{display:inline-block;background:#EAF3DE;color:#27500A;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:500}
 </style>
 </head>
 <body>
@@ -171,17 +175,6 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
         <div class="hint">What clothes to wash each day.</div>
         <div id="laundry-editor"></div>
         <button class="btn" onclick="saveLaundry()">Save Laundry Rotation</button>
-      </div>
-
-      <div class="card">
-        <h3>📋 Individual weekly / monthly tasks</h3>
-        <div class="hint">Tasks you added via "➕ Add tasks".</div>
-
-        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:12px 4px 6px;text-transform:uppercase">Weekly</div>
-        <div id="weekly-list"></div>
-
-        <div style="font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:12px 4px 6px;text-transform:uppercase">Monthly</div>
-        <div id="monthly-list"></div>
       </div>
     </div>
 
@@ -380,7 +373,7 @@ function subscribeAll() {
     .orderBy('order').onSnapshot(snap => {
       tasks = snap.docs.map(d => ({id: d.id, ...d.data()}));
       renderToday();
-      renderNonDaily();
+      renderRotations();
       renderAllTasks();
     });
 
@@ -536,7 +529,7 @@ function renderRotationRow(item) {
     '<div class="info">' +
     '<div class="name">' + escapeHtml(item.text) + '</div>' +
     '<div class="meta"><span class="badge-tag ' + (item.kind === 'monthly' ? 'badge-monthly' : 'badge-weekly') + '">' +
-    (item.kind === 'monthly' ? '🌟 Monthly rotation' : '⭐ Rotation') + '</span></div>' +
+    (item.kind === 'monthly' ? '🌟 Monthly' : '⭐ Weekly') + '</span></div>' +
     '</div>' +
     '</div>';
 }
@@ -554,36 +547,6 @@ function renderTodayRow(t) {
     '<div class="name">' + escapeHtml(t.name) + '</div>' +
     '<div class="meta">' + badges.join('') + '</div>' +
     '</div>' +
-    '</div>';
-}
-
-// ── NON-DAILY TASKS TAB (read-only) ──
-function renderNonDaily() {
-  const weekly = tasks.filter(t => t.freq === 'weekly');
-  const monthly = tasks.filter(t => t.freq === 'monthly');
-
-  const weeklyEl = document.getElementById('weekly-list');
-  const monthlyEl = document.getElementById('monthly-list');
-
-  if (weeklyEl) {
-    weeklyEl.innerHTML = weekly.length
-      ? weekly.map(t => renderNonDailyRow(t)).join('')
-      : '<div style="color:#aaa;font-size:12px;padding:4px 0">No weekly tasks yet</div>';
-  }
-
-  if (monthlyEl) {
-    monthlyEl.innerHTML = monthly.length
-      ? monthly.map(t => renderNonDailyRow(t)).join('')
-      : '<div style="color:#aaa;font-size:12px;padding:4px 0">No monthly tasks yet</div>';
-  }
-}
-
-function renderNonDailyRow(t) {
-  let meta = '';
-  if (t.freq === 'weekly' && t.days) meta = t.days.join(', ');
-  if (t.time) meta += (meta ? ' • ' : '') + '⏰ ' + formatTime12(t.time);
-  return '<div class="non-daily-item">' +
-    '<div class="txt">' + escapeHtml(t.name) + (meta ? ' <span style="color:#888;font-size:11px">— ' + meta + '</span>' : '') + '</div>' +
     '</div>';
 }
 
@@ -731,19 +694,34 @@ function setTab(t) {
 function renderRotations() {
   const wkEl = document.getElementById('weekly-editor');
   if (wkEl) {
-    wkEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d =>
-      '<div class="rot-row"><span class="lbl">' + d + '</span>' +
-      '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>'
-    ).join('');
+    wkEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d => {
+      const tasksForDay = tasks.filter(t => t.freq === 'weekly' && (t.days || []).includes(d));
+      const chips = tasksForDay.map(t =>
+        '<span class="task-chip">' + escapeHtml(t.name) + (t.time ? ' <span style="color:#999">· ' + formatTime12(t.time) + '</span>' : '') + '</span>'
+      ).join('');
+      return '<div class="rot-row"><span class="lbl">' + d + '</span>' +
+        '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>' +
+        (chips ? '<div class="chip-row"><span class="chip-lbl">Also:</span>' + chips + '</div>' : '');
+    }).join('');
   }
 
   const moEl = document.getElementById('monthly-editor');
   if (moEl) {
     const list = monthly.length ? monthly : [''];
-    moEl.innerHTML = list.map((m, i) =>
+    let html = list.map((m, i) =>
       '<div class="rot-row"><span class="lbl">Sat ' + (i+1) + '</span>' +
       '<input value="' + escapeAttr(m || '') + '" data-idx="' + i + '" class="mo-inp" placeholder="Monthly task ' + (i+1) + '"/></div>'
     ).join('');
+
+    // Show all individual monthly-freq tasks below the rotation
+    const monthlyIndividual = tasks.filter(t => t.freq === 'monthly');
+    if (monthlyIndividual.length) {
+      const chips = monthlyIndividual.map(t =>
+        '<span class="task-chip">' + escapeHtml(t.name) + (t.time ? ' <span style="color:#999">· ' + formatTime12(t.time) + '</span>' : '') + '</span>'
+      ).join('');
+      html += '<div class="chip-row" style="margin-top:8px"><span class="chip-lbl">Also (once/month):</span>' + chips + '</div>';
+    }
+    moEl.innerHTML = html;
   }
 
   const lnEl = document.getElementById('laundry-editor');
