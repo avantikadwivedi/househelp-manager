@@ -364,7 +364,7 @@ function renderTask(t) {
   return '<div class="' + classes + '">' +
     '<button class="play-btn" onclick="speakTask(\'' + t.id + '\')">' + (isSpeaking ? '🔊' : '▶') + '</button>' +
     '<div class="task-info">' +
-    (t.time ? '<div class="ttime">⏰ ' + formatTime12(t.time) + '</div>' : '') +
+    (t.time ? '<div class="ttime">⏰ ' + formatTime12(t.time) + (t.timeEnd ? ' – ' + formatTime12(t.timeEnd) : '') + '</div>' : '') +
     badge +
     '<div class="tname">' + escapeHtml(t.text) + '</div>' +
     (isDone ? '<div class="tmeta">' + T('done_label') + '</div>' : '') +

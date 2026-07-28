@@ -105,6 +105,10 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 .chip-row{padding:4px 0 8px 60px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 .chip-lbl{font-size:10px;color:#999;font-weight:600;margin-right:2px}
 .task-chip{display:inline-block;background:#EAF3DE;color:#27500A;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:500}
+
+.time-mode{display:flex;flex-direction:column;gap:4px}
+.tm-opt{display:flex;align-items:center;gap:6px;font-size:12px;color:#555;cursor:pointer;padding:4px 0}
+.tm-opt input{width:auto;padding:0;margin:0;accent-color:#C0622A}
 </style>
 </head>
 <body>
@@ -198,7 +202,21 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
           </div>
           <div class="field">
             <label>Time (optional)</label>
-            <input id="task-time" type="time" />
+            <div class="time-mode">
+              <label class="tm-opt"><input type="radio" name="task-time-mode" value="none" checked onchange="timeModeChanged()"/> No time</label>
+              <label class="tm-opt"><input type="radio" name="task-time-mode" value="exact" onchange="timeModeChanged()"/> Exact time</label>
+              <label class="tm-opt"><input type="radio" name="task-time-mode" value="bracket" onchange="timeModeChanged()"/> Time bracket</label>
+            </div>
+            <div id="time-exact-wrap" style="display:none;margin-top:8px">
+              <input id="task-time" type="time" />
+            </div>
+            <div id="time-bracket-wrap" style="display:none;margin-top:8px">
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="task-time-start" type="time" style="flex:1" placeholder="Start"/>
+                <span style="color:#888;font-size:12px">to</span>
+                <input id="task-time-end" type="time" style="flex:1" placeholder="End"/>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -273,7 +291,21 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
       </div>
       <div class="field">
         <label>Time (optional)</label>
-        <input id="edit-task-time" type="time" />
+        <div class="time-mode">
+          <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="none" onchange="editTimeModeChanged()"/> No time</label>
+          <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="exact" onchange="editTimeModeChanged()"/> Exact time</label>
+          <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="bracket" onchange="editTimeModeChanged()"/> Time bracket</label>
+        </div>
+        <div id="edit-time-exact-wrap" style="display:none;margin-top:8px">
+          <input id="edit-task-time" type="time" />
+        </div>
+        <div id="edit-time-bracket-wrap" style="display:none;margin-top:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="edit-task-time-start" type="time" style="flex:1"/>
+            <span style="color:#888;font-size:12px">to</span>
+            <input id="edit-task-time-end" type="time" style="flex:1"/>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -495,7 +527,7 @@ function renderTodayRow(t) {
   if (t.freq === 'weekly')  badges.push('<span class="badge-tag badge-weekly">' + (t.days || []).join(', ') + '</span>');
   if (t.freq === 'monthly') badges.push('<span class="badge-tag badge-monthly">Monthly</span>');
   if (t.freq === 'once')    badges.push('<span class="badge-tag badge-once">Today only</span>');
-  if (t.time)               badges.push('<span class="badge-tag badge-timed">⏰ ' + formatTime12(t.time) + '</span>');
+  badges.push(renderTimeBadge(t));
   return '<div class="task-row">' +
     '<span class="toggle">' + (doneMap[t.id] ? '✅' : '⬜') + '</span>' +
     '<div class="info">' +
@@ -511,6 +543,18 @@ function freqChanged() {
   document.getElementById('days-field').style.display = f === 'weekly' ? 'block' : 'none';
 }
 
+function timeModeChanged() {
+  const mode = document.querySelector('input[name="task-time-mode"]:checked').value;
+  document.getElementById('time-exact-wrap').style.display = mode === 'exact' ? 'block' : 'none';
+  document.getElementById('time-bracket-wrap').style.display = mode === 'bracket' ? 'block' : 'none';
+}
+
+function editTimeModeChanged() {
+  const mode = document.querySelector('input[name="edit-task-time-mode"]:checked').value;
+  document.getElementById('edit-time-exact-wrap').style.display = mode === 'exact' ? 'block' : 'none';
+  document.getElementById('edit-time-bracket-wrap').style.display = mode === 'bracket' ? 'block' : 'none';
+}
+
 function toggleDay(el) {
   el.classList.toggle('sel');
   const d = el.dataset.d;
@@ -521,12 +565,21 @@ function toggleDay(el) {
 async function saveTask() {
   const name = document.getElementById('task-name').value.trim();
   const freq = document.getElementById('task-freq').value;
-  const time = document.getElementById('task-time').value.trim();
+  const mode = document.querySelector('input[name="task-time-mode"]:checked').value;
+  let time = '', timeEnd = '';
+  if (mode === 'exact') {
+    time = document.getElementById('task-time').value.trim();
+  } else if (mode === 'bracket') {
+    time = document.getElementById('task-time-start').value.trim();
+    timeEnd = document.getElementById('task-time-end').value.trim();
+    if (!time || !timeEnd) { toast('Enter both start and end time'); return; }
+  }
+
   if (!name) { toast('Enter task name'); return; }
   if (freq === 'weekly' && selectedDays.length === 0) { toast('Select at least one day'); return; }
 
   const data = {
-    name, freq, time,
+    name, freq, time, timeEnd,
     days: freq === 'weekly' ? [...selectedDays] : [],
     enabled: true,
     order: tasks.length ? Math.max(...tasks.map(t => t.order || 0)) + 1 : 0,
@@ -537,7 +590,11 @@ async function saveTask() {
     await db.collection('homes').doc(homeCode).collection('tasks').add(data);
     document.getElementById('task-name').value = '';
     document.getElementById('task-time').value = '';
+    document.getElementById('task-time-start').value = '';
+    document.getElementById('task-time-end').value = '';
     document.getElementById('task-freq').value = 'daily';
+    document.querySelector('input[name="task-time-mode"][value="none"]').checked = true;
+    timeModeChanged();
     selectedDays = [];
     document.querySelectorAll('#day-chips .dc').forEach(el => el.classList.remove('sel'));
     freqChanged();
@@ -557,7 +614,7 @@ function renderAllTasks() {
     if (t.freq === 'weekly')  badges.push('<span class="badge-tag badge-weekly">' + (t.days || []).join(', ') + '</span>');
     if (t.freq === 'monthly') badges.push('<span class="badge-tag badge-monthly">Monthly</span>');
     if (t.freq === 'once')    badges.push('<span class="badge-tag badge-once">Once</span>');
-    if (t.time)               badges.push('<span class="badge-tag badge-timed">⏰ ' + formatTime12(t.time) + '</span>');
+    badges.push(renderTimeBadge(t));
     return '<div class="task-row">' +
       '<div class="toggle" onclick="toggleEnabled(\'' + t.id + '\')">' + (t.enabled ? '✅' : '⬜') + '</div>' +
       '<div class="info">' +
@@ -591,7 +648,17 @@ function openEditModal(id) {
   editingId = id;
   document.getElementById('edit-task-name').value = t.name;
   document.getElementById('edit-task-freq').value = t.freq || 'daily';
-  document.getElementById('edit-task-time').value = t.time || '';
+
+  // Set time mode based on task data
+  let mode = 'none';
+  if (t.time && t.timeEnd) mode = 'bracket';
+  else if (t.time) mode = 'exact';
+  document.querySelector('input[name="edit-task-time-mode"][value="' + mode + '"]').checked = true;
+  editTimeModeChanged();
+  document.getElementById('edit-task-time').value = mode === 'exact' ? (t.time || '') : '';
+  document.getElementById('edit-task-time-start').value = mode === 'bracket' ? (t.time || '') : '';
+  document.getElementById('edit-task-time-end').value = mode === 'bracket' ? (t.timeEnd || '') : '';
+
   editSelectedDays = [...(t.days || [])];
   editFreqChanged();
   document.querySelectorAll('#edit-day-chips .dc').forEach(el => {
@@ -621,12 +688,21 @@ async function saveEditedTask() {
   if (!editingId) return;
   const name = document.getElementById('edit-task-name').value.trim();
   const freq = document.getElementById('edit-task-freq').value;
-  const time = document.getElementById('edit-task-time').value.trim();
+  const mode = document.querySelector('input[name="edit-task-time-mode"]:checked').value;
+  let time = '', timeEnd = '';
+  if (mode === 'exact') {
+    time = document.getElementById('edit-task-time').value.trim();
+  } else if (mode === 'bracket') {
+    time = document.getElementById('edit-task-time-start').value.trim();
+    timeEnd = document.getElementById('edit-task-time-end').value.trim();
+    if (!time || !timeEnd) { toast('Enter both start and end time'); return; }
+  }
+
   if (!name) { toast('Enter task name'); return; }
   if (freq === 'weekly' && editSelectedDays.length === 0) { toast('Select at least one day'); return; }
 
   const data = {
-    name, freq, time,
+    name, freq, time, timeEnd,
     days: freq === 'weekly' ? [...editSelectedDays] : []
   };
   try {
@@ -722,6 +798,12 @@ function formatTime12(t) {
   h = h % 12;
   if (h === 0) h = 12;
   return h + ':' + m + ' ' + ampm;
+}
+
+function renderTimeBadge(t) {
+  if (t.time && t.timeEnd) return '<span class="badge-tag badge-timed">⏰ ' + formatTime12(t.time) + ' – ' + formatTime12(t.timeEnd) + '</span>';
+  if (t.time) return '<span class="badge-tag badge-timed">⏰ ' + formatTime12(t.time) + '</span>';
+  return '';
 }
 
 function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
