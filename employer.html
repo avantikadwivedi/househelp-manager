@@ -459,24 +459,7 @@ function renderToday() {
   const el = document.getElementById('today-list');
   const todayTasks = tasks.filter(isTaskForToday);
 
-  // Get today's day name (using Sun-Sat since laundry uses that)
-  const today = new Date();
-  const dayFullNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const dayName = dayFullNames[today.getDay()];
-
-  // Get rotation entries for today
-  const weeklyToday = weekly[dayName] ? {id: 'rot-w-' + dayName, text: weekly[dayName], kind: 'weekly'} : null;
-  const laundryToday = laundry[dayName] ? {id: 'rot-l-' + dayName, text: laundry[dayName], kind: 'weekly'} : null;
-  let monthlyToday = null;
-  if (dayName === 'Sat' && monthly.length) {
-    const weekOfMonth = Math.ceil(today.getDate() / 7);
-    const idx = (weekOfMonth - 1) % monthly.length;
-    monthlyToday = {id: 'rot-m-' + idx, text: monthly[idx], kind: 'monthly'};
-  }
-
-  const hasAnything = todayTasks.length || weeklyToday || laundryToday || monthlyToday;
-
-  if (!hasAnything) {
+  if (!todayTasks.length) {
     el.innerHTML = '<div class="empty-tasks">' +
       '<span class="icon">📝</span>' +
       '<strong>No tasks today</strong><br/>' +
@@ -491,23 +474,10 @@ function renderToday() {
 
   let html = '';
 
-  // Special tasks section — rotations first, then individual special tasks
-  const specialItems = [];
-  if (monthlyToday) specialItems.push(monthlyToday);
-  if (weeklyToday) specialItems.push(weeklyToday);
-  specialItems.push(...special);
-
-  if (specialItems.length) {
-    html += '<div class="section-hdr">⭐ Special tasks <span class="section-count-inline">' + specialItems.length + '</span></div>';
-    html += specialItems.map(item => item.text ? renderRotationRow(item) : renderTodayRow(item)).join('');
+  if (special.length) {
+    html += '<div class="section-hdr">⭐ Special tasks <span class="section-count-inline">' + special.length + '</span></div>';
+    html += special.map(renderTodayRow).join('');
   }
-
-  // Laundry section (own callout so it's easy to see)
-  if (laundryToday) {
-    html += '<div class="section-hdr" style="padding-top:14px">🧺 Today\'s laundry</div>';
-    html += renderRotationRow(laundryToday);
-  }
-
   if (timed.length) {
     html += '<div class="section-hdr" style="padding-top:14px">⏰ Fixed time tasks <span class="section-count-inline">' + timed.length + '</span></div>';
     html += timed.map(renderTodayRow).join('');
@@ -517,17 +487,6 @@ function renderToday() {
     html += anytime.map(renderTodayRow).join('');
   }
   el.innerHTML = html;
-}
-
-function renderRotationRow(item) {
-  return '<div class="task-row">' +
-    '<span class="toggle">' + (doneMap[item.id] ? '✅' : '⬜') + '</span>' +
-    '<div class="info">' +
-    '<div class="name">' + escapeHtml(item.text) + '</div>' +
-    '<div class="meta"><span class="badge-tag ' + (item.kind === 'monthly' ? 'badge-monthly' : 'badge-weekly') + '">' +
-    (item.kind === 'monthly' ? '🌟 Monthly' : '⭐ Weekly') + '</span></div>' +
-    '</div>' +
-    '</div>';
 }
 
 function renderTodayRow(t) {
