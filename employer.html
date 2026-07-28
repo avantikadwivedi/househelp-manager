@@ -136,7 +136,7 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 
   <div class="tabs">
     <button class="tab on" id="t-today" onclick="setTab('today')">📋 Today's tasks</button>
-    <button class="tab" id="t-add" onclick="setTab('add')">➕ Add tasks</button>
+    <button class="tab" id="t-add" onclick="setTab('add')">➕ Daily & one-off tasks</button>
     <button class="tab" id="t-nondaily" onclick="setTab('nondaily')">⭐ Weekly/Monthly editor</button>
   </div>
 
@@ -193,8 +193,6 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
             <label>Frequency</label>
             <select id="task-freq" onchange="freqChanged()">
               <option value="daily">Every day</option>
-              <option value="weekly">Weekly (choose days)</option>
-              <option value="monthly">Once a month</option>
               <option value="once">Once (today only)</option>
             </select>
           </div>
@@ -270,8 +268,6 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
         <label>Frequency</label>
         <select id="edit-task-freq" onchange="editFreqChanged()">
           <option value="daily">Every day</option>
-          <option value="weekly">Weekly (choose days)</option>
-          <option value="monthly">Once a month</option>
           <option value="once">Once (today only)</option>
         </select>
       </div>
@@ -484,7 +480,7 @@ function renderToday() {
     el.innerHTML = '<div class="empty-tasks">' +
       '<span class="icon">📝</span>' +
       '<strong>No tasks today</strong><br/>' +
-      'Add tasks in the "➕ Add tasks" tab.' +
+      'Add tasks in the "➕ Daily & one-off tasks" tab.' +
       '</div>';
     return;
   }
@@ -694,34 +690,19 @@ function setTab(t) {
 function renderRotations() {
   const wkEl = document.getElementById('weekly-editor');
   if (wkEl) {
-    wkEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d => {
-      const tasksForDay = tasks.filter(t => t.freq === 'weekly' && (t.days || []).includes(d));
-      const chips = tasksForDay.map(t =>
-        '<span class="task-chip">' + escapeHtml(t.name) + (t.time ? ' <span style="color:#999">· ' + formatTime12(t.time) + '</span>' : '') + '</span>'
-      ).join('');
-      return '<div class="rot-row"><span class="lbl">' + d + '</span>' +
-        '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>' +
-        (chips ? '<div class="chip-row"><span class="chip-lbl">Also:</span>' + chips + '</div>' : '');
-    }).join('');
+    wkEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d =>
+      '<div class="rot-row"><span class="lbl">' + d + '</span>' +
+      '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>'
+    ).join('');
   }
 
   const moEl = document.getElementById('monthly-editor');
   if (moEl) {
     const list = monthly.length ? monthly : [''];
-    let html = list.map((m, i) =>
+    moEl.innerHTML = list.map((m, i) =>
       '<div class="rot-row"><span class="lbl">Sat ' + (i+1) + '</span>' +
       '<input value="' + escapeAttr(m || '') + '" data-idx="' + i + '" class="mo-inp" placeholder="Monthly task ' + (i+1) + '"/></div>'
     ).join('');
-
-    // Show all individual monthly-freq tasks below the rotation
-    const monthlyIndividual = tasks.filter(t => t.freq === 'monthly');
-    if (monthlyIndividual.length) {
-      const chips = monthlyIndividual.map(t =>
-        '<span class="task-chip">' + escapeHtml(t.name) + (t.time ? ' <span style="color:#999">· ' + formatTime12(t.time) + '</span>' : '') + '</span>'
-      ).join('');
-      html += '<div class="chip-row" style="margin-top:8px"><span class="chip-lbl">Also (once/month):</span>' + chips + '</div>';
-    }
-    moEl.innerHTML = html;
   }
 
   const lnEl = document.getElementById('laundry-editor');
