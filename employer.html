@@ -3,112 +3,145 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<meta name="theme-color" content="#2D1B0E"/>
+<meta name="theme-color" content="#F7E9E4"/>
 <title>Ghar Kaam — Employer</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="firebase-config.js"></script>
 <style>
+:root{
+  --bg: #FBF6F1;
+  --surface: #FFFFFF;
+  --surface-soft: #F7EDE5;
+  --blush: #F0D9CE;
+  --blush-deep: #D89B87;
+  --sage: #A8B89F;
+  --sage-deep: #7B9078;
+  --sage-soft: #E4EBDF;
+  --ink: #2A2320;
+  --ink-soft: #6B5D57;
+  --ink-mute: #A69990;
+  --border: #EDDFD4;
+  --gold: #B8926A;
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;display:flex;flex-direction:column;align-items:center}
-.app{width:100%;max-width:440px;min-height:100dvh;background:#F5F0E8;display:flex;flex-direction:column}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:100dvh;display:flex;flex-direction:column;align-items:center;color:var(--ink);letter-spacing:-.005em}
+.app{width:100%;max-width:440px;min-height:100dvh;background:var(--bg);display:flex;flex-direction:column}
 
-.setup{background:#2D1B0E;flex:1;padding:56px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:100dvh}
-.setup-logo{font-size:26px;font-weight:700;color:#E8943A;text-align:center}
-.setup-sub{font-size:14px;color:#A08070;margin-top:6px;text-align:center}
-.setup-inp{width:100%;padding:18px 20px;border:2px solid #E8943A;border-radius:14px;font-size:18px;background:#fff;color:#2D1B0E;outline:none;text-align:center;letter-spacing:2px;font-weight:600}
-.setup-btn{width:100%;padding:18px;background:#E8943A;border:none;border-radius:14px;font-size:16px;font-weight:700;color:#2D1B0E;cursor:pointer}
-.setup-hint{font-size:12px;color:#A08070;text-align:center;line-height:1.5;margin-top:8px}
+/* SETUP */
+.setup{background:linear-gradient(160deg,#F7EDE5 0%,#EDDFD4 100%);flex:1;padding:64px 32px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;min-height:100dvh}
+.setup-logo{font-family:'Fraunces',serif;font-size:36px;font-weight:500;color:var(--ink);text-align:center;letter-spacing:-.02em;line-height:1.1}
+.setup-sub{font-size:14px;color:var(--ink-soft);margin-top:10px;text-align:center;font-weight:400;letter-spacing:.02em}
+.setup-inp{width:100%;padding:20px;border:1px solid var(--border);border-radius:16px;font-size:17px;background:var(--surface);color:var(--ink);outline:none;text-align:center;letter-spacing:2px;font-weight:500;font-family:inherit;transition:.2s}
+.setup-inp:focus{border-color:var(--blush-deep);box-shadow:0 0 0 3px rgba(216,155,135,.12)}
+.setup-btn{width:100%;padding:18px;background:var(--ink);border:none;border-radius:16px;font-size:15px;font-weight:500;color:#fff;cursor:pointer;letter-spacing:.02em;transition:.2s;font-family:inherit}
+.setup-btn:active{transform:scale(.98)}
+.setup-hint{font-size:12px;color:var(--ink-mute);text-align:center;line-height:1.6;margin-top:6px;font-style:italic;font-family:'Fraunces',serif}
 
-.topbar{background:#2D1B0E;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.tb-title{font-size:16px;font-weight:700;color:#E8943A}
-.tb-code{background:rgba(232,148,58,.15);color:#E8943A;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;margin-top:3px;display:inline-block}
-.tb-btn{background:rgba(255,255,255,.12);border:none;color:#ccc;padding:8px 12px;border-radius:10px;font-size:12px;cursor:pointer}
+/* TOPBAR */
+.topbar{background:var(--surface);padding:18px 20px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid var(--border)}
+.tb-title{font-family:'Fraunces',serif;font-size:20px;font-weight:500;color:var(--ink);letter-spacing:-.01em}
+.tb-code{color:var(--ink-soft);padding:2px 0;font-size:11px;font-weight:500;margin-top:2px;display:inline-block;letter-spacing:.05em}
+.tb-btn{background:transparent;border:1px solid var(--border);color:var(--ink-soft);padding:7px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500}
 
-.tabs{display:flex;background:#2D1B0E;padding:0 12px 12px;gap:6px;flex-shrink:0}
-.tab{flex:1;padding:10px 4px;border:none;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;background:rgba(255,255,255,.08);color:#A08070;line-height:1.2}
-.tab.on{background:#E8943A;color:#2D1B0E}
+/* TABS */
+.tabs{display:flex;background:var(--surface);padding:0 12px 12px;gap:4px;flex-shrink:0;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:10px 4px;border:none;border-radius:12px;font-size:11px;font-weight:500;cursor:pointer;background:transparent;color:var(--ink-mute);line-height:1.3;font-family:inherit;transition:.2s}
+.tab.on{background:var(--sage-soft);color:var(--sage-deep);font-weight:600}
 
-.body{padding:16px;overflow-y:auto;flex:1;position:relative}
+/* BODY */
+.body{padding:20px 18px;overflow-y:auto;flex:1;position:relative}
 
-.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid #EEE}
-.card h3{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.card .hint{font-size:12px;color:#888;margin-bottom:12px;line-height:1.5}
+/* CARDS */
+.card{background:var(--surface);border-radius:20px;padding:20px;margin-bottom:16px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.02)}
+.card h3{font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--ink);margin-bottom:14px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.card .hint{font-size:12px;color:var(--ink-soft);margin-bottom:14px;line-height:1.6;font-family:'Fraunces',serif;font-style:italic}
 
-.field{margin-bottom:12px}
-.field label{display:block;font-size:12px;color:#666;margin-bottom:5px;font-weight:600}
-.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid #E0D0C0;border-radius:10px;font-size:14px;background:#F9F5F0;color:#1a1a1a;outline:none;font-family:inherit}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:#C0622A;background:#fff}
+/* FIELDS */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:6px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.field input,.field select,.field textarea{width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:12px;font-size:14px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit;transition:.2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blush-deep);background:var(--surface);box-shadow:0 0 0 3px rgba(216,155,135,.1)}
 
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
+/* DAY CHIPS */
 .day-chips{display:flex;flex-wrap:wrap;gap:6px}
-.dc{padding:6px 12px;border-radius:20px;border:1.5px solid #E0D0C0;background:#F9F5F0;font-size:12px;cursor:pointer;color:#666;font-weight:600}
-.dc.sel{background:#4A6FA5;border-color:#4A6FA5;color:#fff}
+.dc{padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);font-size:12px;cursor:pointer;color:var(--ink-soft);font-weight:500;transition:.2s;font-family:inherit}
+.dc.sel{background:var(--sage-deep);border-color:var(--sage-deep);color:#fff}
 
-.btn{width:100%;padding:14px;background:#C0622A;border:none;border-radius:12px;font-size:14px;font-weight:600;color:#fff;cursor:pointer}
-.btn:active{opacity:.8}
-.btn.secondary{background:transparent;color:#666;border:1.5px solid #DDD}
+/* BUTTONS */
+.btn{width:100%;padding:15px;background:var(--ink);border:none;border-radius:14px;font-size:14px;font-weight:500;color:#fff;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:.2s}
+.btn:active{transform:scale(.98)}
+.btn.secondary{background:transparent;color:var(--ink-soft);border:1px solid var(--border)}
+.btn.primary-blush{background:var(--blush-deep)}
 
-.task-row{background:#fff;border:1px solid #EEE;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.task-row .toggle{width:24px;height:24px;flex-shrink:0;cursor:pointer;font-size:20px;line-height:1}
+/* TASK ROWS */
+.task-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:.2s}
+.task-row .toggle{width:22px;height:22px;flex-shrink:0;cursor:pointer;font-size:18px;line-height:1}
 .task-row .info{flex:1;min-width:0}
-.task-row .name{font-size:14px;color:#1a1a1a;font-weight:500;line-height:1.35}
-.task-row .name.off{color:#aaa;text-decoration:line-through}
-.task-row .meta{font-size:11px;color:#888;margin-top:3px}
-.task-row .actions{display:flex;gap:6px;flex-shrink:0}
-.icon-btn{background:#F5F0E8;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px}
-.icon-btn.del{background:#FCEBEB;color:#A32D2D}
+.task-row .name{font-size:14px;color:var(--ink);font-weight:500;line-height:1.4;letter-spacing:-.005em}
+.task-row .name.off{color:var(--ink-mute);text-decoration:line-through}
+.task-row .meta{font-size:11px;color:var(--ink-mute);margin-top:5px}
+.task-row .actions{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:var(--surface-soft);border:none;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:13px;color:var(--ink-soft);transition:.2s}
+.icon-btn:active{transform:scale(.94)}
+.icon-btn.del{background:#F4E4E0;color:#B85A48}
 
-.badge-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;margin-right:4px}
-.badge-daily{background:#EAF3DE;color:#3D7A4A}
-.badge-weekly{background:#FFE9CC;color:#C0622A}
-.badge-monthly{background:#E5D5F0;color:#7B4A9B}
-.badge-once{background:#DDEBF7;color:#4A6FA5}
-.badge-timed{background:#FFF3CC;color:#7B4A00}
+/* BADGES */
+.badge-tag{display:inline-block;font-size:10px;padding:3px 8px;border-radius:8px;font-weight:500;margin-right:5px;letter-spacing:.02em}
+.badge-daily{background:var(--sage-soft);color:var(--sage-deep)}
+.badge-weekly{background:#F5E4D5;color:#A67450}
+.badge-monthly{background:#EEE4F0;color:#7E5D8B}
+.badge-once{background:#DEE7EB;color:#4E7482}
+.badge-timed{background:#F8EBDF;color:#A67450}
 
-.empty-tasks{text-align:center;padding:40px 20px;color:#888;font-size:14px;line-height:1.6;background:#fff;border-radius:14px;border:2px dashed #E0D0C0}
-.empty-tasks .icon{font-size:40px;display:block;margin-bottom:12px}
+/* EMPTY STATE */
+.empty-tasks{text-align:center;padding:48px 20px;color:var(--ink-mute);font-size:13px;line-height:1.7;background:var(--surface);border-radius:20px;border:1px dashed var(--border);font-family:'Fraunces',serif;font-style:italic}
+.empty-tasks .icon{font-size:32px;display:block;margin-bottom:14px;opacity:.6}
+.empty-tasks strong{font-weight:500;color:var(--ink-soft);display:block;font-style:normal;font-family:'Inter',sans-serif;margin-bottom:6px;font-size:14px}
 
-.section-hdr{font-size:11px;font-weight:700;color:#999;letter-spacing:1px;padding:0 4px 8px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
-.section-count-inline{background:#F0E0D0;color:#8B6F5C;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
+/* SECTION HEADER */
+.section-hdr{font-family:'Fraunces',serif;font-size:12px;font-weight:500;color:var(--ink-soft);letter-spacing:.08em;padding:0 4px 10px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.section-count-inline{background:var(--blush);color:var(--ink-soft);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;margin-left:8px;letter-spacing:.02em;font-family:'Inter',sans-serif}
 
-.helper-link{padding:14px;background:#EAF3DE;border-radius:12px;font-size:12px;color:#27500A;line-height:1.6;margin-bottom:14px}
-.helper-link strong{color:#3D7A4A}
-.copy-btn{margin-top:8px;background:#3D7A4A;color:#fff;border:none;padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;font-weight:600}
+/* HELPER LINK CARD */
+.helper-link{padding:20px;background:linear-gradient(135deg,var(--sage-soft) 0%,#EEF3EA 100%);border-radius:20px;font-size:12px;color:var(--ink);line-height:1.7;margin-bottom:18px;border:1px solid rgba(168,184,159,.3)}
+.helper-link strong{color:var(--ink);font-family:'Fraunces',serif;font-size:14px;font-weight:500;display:block;margin-bottom:2px}
+.helper-link .code-val{font-family:'Fraunces',serif;font-size:16px;color:var(--sage-deep);font-weight:500}
+.copy-btn{margin-top:12px;background:var(--sage-deep);color:#fff;border:none;padding:10px 18px;border-radius:12px;font-size:12px;cursor:pointer;font-weight:500;font-family:inherit;letter-spacing:.02em}
 
-/* Modal */
-.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+/* MODAL */
+.modal-back{position:fixed;inset:0;background:rgba(42,35,32,.55);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-end;justify-content:center}
 .modal-back.on{display:flex}
-.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:20px 20px 30px;max-height:90vh;overflow-y:auto;animation:slideup .25s ease}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:440px;padding:24px 22px 32px;max-height:92vh;overflow-y:auto;animation:slideup .3s cubic-bezier(.2,.9,.3,1.2)}
 @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.modal-hdr h3{font-size:16px;font-weight:700;color:#1a1a1a}
-.modal-close{background:transparent;border:none;font-size:22px;cursor:pointer;color:#888}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-hdr h3{font-family:'Fraunces',serif;font-size:20px;font-weight:500;color:var(--ink);letter-spacing:-.01em}
+.modal-close{background:transparent;border:none;font-size:22px;cursor:pointer;color:var(--ink-mute)}
 
-.lang-btn-grp{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.lang-btn{flex:1;min-width:130px;padding:16px 12px;border:1.5px solid #E0D0C0;background:#F9F5F0;border-radius:12px;font-size:14px;font-weight:600;color:#666;cursor:pointer;text-align:center}
-.lang-btn.sel{background:#3D7A4A;color:#fff;border-color:#3D7A4A}
+/* LANGUAGE BUTTONS */
+.lang-btn-grp{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.lang-btn{flex:1;min-width:130px;padding:18px 14px;border:1px solid var(--border);background:var(--bg);border-radius:14px;font-size:14px;font-weight:500;color:var(--ink-soft);cursor:pointer;text-align:center;font-family:inherit;transition:.2s}
+.lang-btn.sel{background:var(--sage-deep);color:#fff;border-color:var(--sage-deep)}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#2D1B0E;color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;z-index:200;transition:transform .3s;pointer-events:none}
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:13px 22px;border-radius:30px;font-size:13px;z-index:200;transition:transform .35s cubic-bezier(.2,.9,.3,1.2);pointer-events:none;font-family:inherit;box-shadow:0 8px 24px rgba(42,35,32,.25)}
 .toast.show{transform:translateX(-50%) translateY(0)}
 
-.non-daily-item{background:#fff;border:1px solid #EEE;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:13px;color:#1a1a1a;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.non-daily-item .lbl{font-size:11px;color:#666;font-weight:600;min-width:60px}
-.non-daily-item .txt{flex:1;color:#1a1a1a}
+/* ROTATION ROW */
+.rot-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rot-row .lbl{width:52px;font-size:10px;color:var(--ink-mute);font-weight:600;text-transform:uppercase;letter-spacing:.08em;flex-shrink:0;font-family:'Fraunces',serif;font-style:italic}
+.rot-row input{flex:1;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit;transition:.2s}
+.rot-row input:focus{border-color:var(--blush-deep);background:var(--surface);box-shadow:0 0 0 3px rgba(216,155,135,.1)}
 
-.rot-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.rot-row .lbl{width:52px;font-size:11px;color:#888;font-weight:700;text-transform:uppercase;flex-shrink:0}
-.rot-row input{flex:1;padding:9px 11px;border:1px solid #E0D0C0;border-radius:8px;font-size:13px;background:#F9F5F0;color:#1a1a1a;outline:none}
-.rot-row input:focus{border-color:#C0622A;background:#fff}
-
-.chip-row{padding:4px 0 8px 60px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
-.chip-lbl{font-size:10px;color:#999;font-weight:600;margin-right:2px}
-.task-chip{display:inline-block;background:#EAF3DE;color:#27500A;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:500}
-
-.time-mode{display:flex;flex-direction:column;gap:4px}
-.tm-opt{display:flex;align-items:center;gap:6px;font-size:12px;color:#555;cursor:pointer;padding:4px 0}
-.tm-opt input{width:auto;padding:0;margin:0;accent-color:#C0622A}
+/* TIME MODE */
+.time-mode{display:flex;flex-direction:row;gap:14px;flex-wrap:wrap;align-items:center;padding:4px 0}
+.tm-opt{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);cursor:pointer;white-space:nowrap;font-family:inherit}
+.tm-opt input{width:auto;padding:0;margin:0;accent-color:var(--sage-deep);flex-shrink:0}
 </style>
 </head>
 <body>
@@ -117,8 +150,8 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 <!-- SETUP -->
 <div id="setup" class="setup">
   <div>
-    <div class="setup-logo">🏠 Ghar Kaam</div>
-    <div class="setup-sub">Employer Setup</div>
+    <div class="setup-logo">Ghar Kaam</div>
+    <div class="setup-sub">A gentle way to run your home</div>
   </div>
   <div style="width:100%">
     <input class="setup-inp" id="home-code-inp" placeholder="ENTER HOME CODE" maxlength="15" />
@@ -132,7 +165,7 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
 
   <div class="topbar">
     <div>
-      <div class="tb-title">🏠 Ghar Kaam</div>
+      <div class="tb-title">Ghar Kaam</div>
       <div><span class="tb-code" id="home-label"></span></div>
     </div>
     <button class="tb-btn" onclick="switchHome()">Switch</button>
@@ -149,9 +182,9 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
     <!-- TODAY'S TASKS TAB (read-only, sectioned) -->
     <div id="p-today">
       <div class="helper-link">
-        <div><strong>📱 Share with household help</strong></div>
-        <div style="margin-top:4px">Code: <strong id="show-code"></strong></div>
-        <button class="copy-btn" onclick="openShareModal()">📋 Share link</button>
+        <strong>Share with household help</strong>
+        <div style="margin-top:6px">Code: <span class="code-val" id="show-code"></span></div>
+        <button class="copy-btn" onclick="openShareModal()">Share link →</button>
       </div>
 
       <div id="today-list"></div>
@@ -192,30 +225,29 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
           <textarea id="task-name" rows="2" placeholder="e.g., Clean the fan"></textarea>
         </div>
 
-        <div class="row">
-          <div class="field">
-            <label>Frequency</label>
-            <select id="task-freq" onchange="freqChanged()">
-              <option value="daily">Every day</option>
-              <option value="once">Once (today only)</option>
-            </select>
+        <div class="field">
+          <label>Frequency</label>
+          <select id="task-freq" onchange="freqChanged()" style="width:100%">
+            <option value="daily">Every day</option>
+            <option value="once">Once (today only)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Time (optional)</label>
+          <div class="time-mode">
+            <label class="tm-opt"><input type="radio" name="task-time-mode" value="none" checked onchange="timeModeChanged()"/> No time</label>
+            <label class="tm-opt"><input type="radio" name="task-time-mode" value="exact" onchange="timeModeChanged()"/> Exact time</label>
+            <label class="tm-opt"><input type="radio" name="task-time-mode" value="bracket" onchange="timeModeChanged()"/> Time bracket</label>
           </div>
-          <div class="field">
-            <label>Time (optional)</label>
-            <div class="time-mode">
-              <label class="tm-opt"><input type="radio" name="task-time-mode" value="none" checked onchange="timeModeChanged()"/> No time</label>
-              <label class="tm-opt"><input type="radio" name="task-time-mode" value="exact" onchange="timeModeChanged()"/> Exact time</label>
-              <label class="tm-opt"><input type="radio" name="task-time-mode" value="bracket" onchange="timeModeChanged()"/> Time bracket</label>
-            </div>
-            <div id="time-exact-wrap" style="display:none;margin-top:8px">
-              <input id="task-time" type="time" />
-            </div>
-            <div id="time-bracket-wrap" style="display:none;margin-top:8px">
-              <div style="display:flex;gap:6px;align-items:center">
-                <input id="task-time-start" type="time" style="flex:1" placeholder="Start"/>
-                <span style="color:#888;font-size:12px">to</span>
-                <input id="task-time-end" type="time" style="flex:1" placeholder="End"/>
-              </div>
+          <div id="time-exact-wrap" style="display:none;margin-top:8px">
+            <input id="task-time" type="time" />
+          </div>
+          <div id="time-bracket-wrap" style="display:none;margin-top:8px">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input id="task-time-start" type="time" style="flex:1" placeholder="Start"/>
+              <span style="color:#888;font-size:12px">to</span>
+              <input id="task-time-end" type="time" style="flex:1" placeholder="End"/>
             </div>
           </div>
         </div>
@@ -281,30 +313,29 @@ body{font-family:system-ui,sans-serif;background:#F5F0E8;min-height:100dvh;displ
       <textarea id="edit-task-name" rows="2"></textarea>
     </div>
 
-    <div class="row">
-      <div class="field">
-        <label>Frequency</label>
-        <select id="edit-task-freq" onchange="editFreqChanged()">
-          <option value="daily">Every day</option>
-          <option value="once">Once (today only)</option>
-        </select>
+    <div class="field">
+      <label>Frequency</label>
+      <select id="edit-task-freq" onchange="editFreqChanged()" style="width:100%">
+        <option value="daily">Every day</option>
+        <option value="once">Once (today only)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Time (optional)</label>
+      <div class="time-mode">
+        <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="none" onchange="editTimeModeChanged()"/> No time</label>
+        <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="exact" onchange="editTimeModeChanged()"/> Exact time</label>
+        <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="bracket" onchange="editTimeModeChanged()"/> Time bracket</label>
       </div>
-      <div class="field">
-        <label>Time (optional)</label>
-        <div class="time-mode">
-          <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="none" onchange="editTimeModeChanged()"/> No time</label>
-          <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="exact" onchange="editTimeModeChanged()"/> Exact time</label>
-          <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="bracket" onchange="editTimeModeChanged()"/> Time bracket</label>
-        </div>
-        <div id="edit-time-exact-wrap" style="display:none;margin-top:8px">
-          <input id="edit-task-time" type="time" />
-        </div>
-        <div id="edit-time-bracket-wrap" style="display:none;margin-top:8px">
-          <div style="display:flex;gap:6px;align-items:center">
-            <input id="edit-task-time-start" type="time" style="flex:1"/>
-            <span style="color:#888;font-size:12px">to</span>
-            <input id="edit-task-time-end" type="time" style="flex:1"/>
-          </div>
+      <div id="edit-time-exact-wrap" style="display:none;margin-top:8px">
+        <input id="edit-task-time" type="time" />
+      </div>
+      <div id="edit-time-bracket-wrap" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="edit-task-time-start" type="time" style="flex:1"/>
+          <span style="color:#888;font-size:12px">to</span>
+          <input id="edit-task-time-end" type="time" style="flex:1"/>
         </div>
       </div>
     </div>
