@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#F7E9E4"/>
-<title>Ghar Kaam</title>
+<title>The Household</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,7 +48,7 @@ body{font-family:'Inter','Noto Sans Devanagari',system-ui,sans-serif;background:
 .hdr-title{font-family:'Fraunces','Noto Sans Devanagari',serif;font-size:26px;font-weight:500;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
 .hdr-sub{font-size:12px;color:var(--ink-soft);margin-top:6px;font-family:'Fraunces','Noto Sans Devanagari',serif;font-style:italic}
 
-.notif-bar{background:var(--blush);padding:12px 16px;text-align:center;font-size:12px;color:var(--ink);border-bottom:1px solid var(--border);font-family:'Fraunces','Noto Sans Devanagari',serif;font-style:italic;margin:0 18px}
+.notif-bar{background:var(--sage-soft);padding:12px 16px;text-align:center;font-size:12px;color:var(--ink);border-bottom:1px solid var(--border);font-family:'Fraunces','Noto Sans Devanagari',serif;font-style:italic;margin:0 18px}
 .notif-bar button{background:var(--ink);color:#fff;border:none;padding:7px 16px;border-radius:20px;font-size:11px;font-weight:500;margin-left:8px;cursor:pointer;font-family:'Inter',sans-serif;font-style:normal;letter-spacing:.02em}
 
 /* DAY BAR */
@@ -67,32 +67,32 @@ body{font-family:'Inter','Noto Sans Devanagari',system-ui,sans-serif;background:
 
 .section-hdr{font-family:'Fraunces','Noto Sans Devanagari',serif;font-size:13px;font-weight:500;color:var(--ink-soft);letter-spacing:.05em;padding:16px 4px 10px;display:flex;align-items:center;gap:6px;font-style:italic}
 .section-hdr:first-child{padding-top:8px}
-.section-count{background:var(--blush);color:var(--ink-soft);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;font-family:'Inter',sans-serif;font-style:normal;letter-spacing:.02em}
+.section-count{background:var(--sage-soft);color:var(--ink-soft);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;font-family:'Inter',sans-serif;font-style:normal;letter-spacing:.02em}
 
 /* TASK CARDS */
 .task-card{border-radius:18px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border);display:flex;align-items:stretch;background:var(--surface);transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.02)}
 .task-card.done{border-color:var(--sage);background:var(--sage-soft)}
-.task-card.speaking{border-color:var(--blush-deep);box-shadow:0 4px 16px rgba(216,155,135,.2)}
-.task-card.weekly{border:1.5px solid var(--blush-deep);background:linear-gradient(135deg,#FBF3ED 0%,#F5E4D5 100%)}
+.task-card.speaking{border-color:var(--sage-deep);box-shadow:0 4px 16px rgba(123,144,120,.25)}
+.task-card.weekly{border:1.5px solid var(--sage-deep);background:linear-gradient(135deg,#F1F5EE 0%,#DDE7D8 100%)}
 .task-card.monthly{border:1.5px solid #B695C4;background:linear-gradient(135deg,#F5EEFA 0%,#EEE4F0 100%)}
-.task-card.timed{border-left:4px solid var(--blush-deep)}
+.task-card.timed{border-left:4px solid var(--sage-deep)}
 .task-card.done.weekly,.task-card.done.monthly{background:var(--sage-soft);border-color:var(--sage)}
 
 .badge{display:inline-block;color:#fff;font-size:10px;font-weight:500;padding:3px 10px;border-radius:10px;margin-bottom:8px;letter-spacing:.03em;font-family:'Inter',sans-serif}
-.badge-w{background:var(--blush-deep)}
+.badge-w{background:var(--sage-deep)}
 .badge-m{background:#8A6E9E}
 .task-card.done .badge{background:var(--sage-deep)}
 
-.play-btn{width:64px;background:var(--blush);border:none;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ink);transition:.2s}
+.play-btn{width:64px;background:var(--sage-soft);border:none;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ink);transition:.2s}
 .task-card.done .play-btn{background:var(--sage)}
-.task-card.weekly .play-btn{background:var(--blush-deep);color:#fff}
+.task-card.weekly .play-btn{background:var(--sage-deep);color:#fff}
 .task-card.monthly .play-btn{background:#B695C4;color:#fff}
 .task-card.done.weekly .play-btn,.task-card.done.monthly .play-btn{background:var(--sage);color:var(--ink)}
 .task-card.speaking .play-btn{animation:pulse .8s infinite alternate}
 @keyframes pulse{from{opacity:1}to{opacity:.5}}
 
 .task-info{flex:1;padding:14px 14px}
-.ttime{font-size:11px;color:var(--blush-deep);font-weight:600;margin-bottom:5px;letter-spacing:.03em;font-family:'Inter',sans-serif}
+.ttime{font-size:11px;color:var(--sage-deep);font-weight:600;margin-bottom:5px;letter-spacing:.03em;font-family:'Inter',sans-serif}
 .tname{font-size:15px;font-weight:500;color:var(--ink);line-height:1.4;letter-spacing:-.005em}
 .task-card.done .tname{color:var(--sage-deep)}
 .tmeta{font-size:11px;color:var(--sage-deep);margin-top:5px;font-weight:500;font-family:'Fraunces','Noto Sans Devanagari',serif;font-style:italic}
@@ -111,7 +111,7 @@ body{font-family:'Inter','Noto Sans Devanagari',system-ui,sans-serif;background:
 
 <div id="setup" class="setup">
   <div>
-    <div class="setup-logo">Ghar Kaam</div>
+    <div class="setup-logo">The Household</div>
     <div class="setup-sub" id="setup-sub">Enter the code from<br/>your employer</div>
   </div>
   <div style="width:100%">

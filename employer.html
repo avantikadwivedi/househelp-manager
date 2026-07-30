@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#F7E9E4"/>
-<title>Ghar Kaam — Employer</title>
+<title>The Household — Employer</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -142,6 +142,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 .time-mode{display:flex;flex-direction:row;gap:14px;flex-wrap:wrap;align-items:center;padding:4px 0}
 .tm-opt{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);cursor:pointer;white-space:nowrap;font-family:inherit}
 .tm-opt input{width:auto;padding:0;margin:0;accent-color:var(--sage-deep);flex-shrink:0}
+
+.time-picker{display:flex;gap:6px;align-items:center}
+.time-picker select{flex:1;padding:11px 10px;border:1px solid var(--sage-soft);border-radius:10px;font-size:13px;background:var(--sage-soft);color:var(--ink);outline:none;font-family:inherit;transition:.2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B5D57' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px}
+.time-picker select:focus{border-color:var(--sage-deep);background-color:var(--surface);box-shadow:0 0 0 3px rgba(123,144,120,.15)}
+.time-picker .colon{color:var(--ink-mute);font-weight:600;font-size:14px}
 </style>
 </head>
 <body>
@@ -150,7 +155,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 <!-- SETUP -->
 <div id="setup" class="setup">
   <div>
-    <div class="setup-logo">Ghar Kaam</div>
+    <div class="setup-logo">The Household</div>
     <div class="setup-sub">A gentle way to run your home</div>
   </div>
   <div style="width:100%">
@@ -165,7 +170,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 
   <div class="topbar">
     <div>
-      <div class="tb-title">Ghar Kaam</div>
+      <div class="tb-title">The Household</div>
       <div><span class="tb-code" id="home-label"></span></div>
     </div>
     <button class="tb-btn" onclick="switchHome()">Switch</button>
@@ -241,14 +246,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
             <label class="tm-opt"><input type="radio" name="task-time-mode" value="bracket" onchange="timeModeChanged()"/> Time bracket</label>
           </div>
           <div id="time-exact-wrap" style="display:none;margin-top:8px">
-            <input id="task-time" type="time" step="1800" />
+            <div class="time-picker" id="time-exact-picker"></div>
           </div>
           <div id="time-bracket-wrap" style="display:none;margin-top:8px">
-            <div style="display:flex;gap:6px;align-items:center">
-              <input id="task-time-start" type="time" step="1800" style="flex:1" placeholder="Start"/>
-              <span style="color:#888;font-size:12px">to</span>
-              <input id="task-time-end" type="time" step="1800" style="flex:1" placeholder="End"/>
-            </div>
+            <div style="font-size:11px;color:var(--ink-mute);margin-bottom:6px;font-weight:500;letter-spacing:.04em">START</div>
+            <div class="time-picker" id="time-start-picker"></div>
+            <div style="font-size:11px;color:var(--ink-mute);margin:12px 0 6px;font-weight:500;letter-spacing:.04em">END</div>
+            <div class="time-picker" id="time-end-picker"></div>
           </div>
         </div>
 
@@ -329,14 +333,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
         <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="bracket" onchange="editTimeModeChanged()"/> Time bracket</label>
       </div>
       <div id="edit-time-exact-wrap" style="display:none;margin-top:8px">
-        <input id="edit-task-time" type="time" step="1800" />
+        <div class="time-picker" id="edit-time-exact-picker"></div>
       </div>
       <div id="edit-time-bracket-wrap" style="display:none;margin-top:8px">
-        <div style="display:flex;gap:6px;align-items:center">
-          <input id="edit-task-time-start" type="time" step="1800" style="flex:1"/>
-          <span style="color:#888;font-size:12px">to</span>
-          <input id="edit-task-time-end" type="time" step="1800" style="flex:1"/>
-        </div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:6px;font-weight:500;letter-spacing:.04em">START</div>
+        <div class="time-picker" id="edit-time-start-picker"></div>
+        <div style="font-size:11px;color:var(--ink-mute);margin:12px 0 6px;font-weight:500;letter-spacing:.04em">END</div>
+        <div class="time-picker" id="edit-time-end-picker"></div>
       </div>
     </div>
 
@@ -488,7 +491,7 @@ async function doShare() {
   const msg = 'Namaste! Please open this app and enter this code:\n\nLink: ' + url + '\nCode: ' + homeCode + '\nLanguage: ' + langLabel;
 
   if (navigator.share) {
-    navigator.share({title: 'Ghar Kaam', text: msg}).catch(() => {});
+    navigator.share({title: 'The Household', text: msg}).catch(() => {});
     closeShareModal();
   } else {
     navigator.clipboard.writeText(msg).then(() => {
@@ -619,12 +622,27 @@ function timeModeChanged() {
   const mode = document.querySelector('input[name="task-time-mode"]:checked').value;
   document.getElementById('time-exact-wrap').style.display = mode === 'exact' ? 'block' : 'none';
   document.getElementById('time-bracket-wrap').style.display = mode === 'bracket' ? 'block' : 'none';
+  if (mode === 'exact') {
+    buildTimePicker('time-exact-picker', 'task-time');
+    setTimePicker('task-time', '');
+  } else if (mode === 'bracket') {
+    buildTimePicker('time-start-picker', 'task-time-start');
+    buildTimePicker('time-end-picker', 'task-time-end');
+    setTimePicker('task-time-start', '');
+    setTimePicker('task-time-end', '');
+  }
 }
 
 function editTimeModeChanged() {
   const mode = document.querySelector('input[name="edit-task-time-mode"]:checked').value;
   document.getElementById('edit-time-exact-wrap').style.display = mode === 'exact' ? 'block' : 'none';
   document.getElementById('edit-time-bracket-wrap').style.display = mode === 'bracket' ? 'block' : 'none';
+  if (mode === 'exact') {
+    buildTimePicker('edit-time-exact-picker', 'edit-task-time');
+  } else if (mode === 'bracket') {
+    buildTimePicker('edit-time-start-picker', 'edit-task-time-start');
+    buildTimePicker('edit-time-end-picker', 'edit-task-time-end');
+  }
 }
 
 function toggleDay(el) {
@@ -640,11 +658,11 @@ async function saveTask() {
   const mode = document.querySelector('input[name="task-time-mode"]:checked').value;
   let time = '', timeEnd = '';
   if (mode === 'exact') {
-    time = roundTo30(document.getElementById('task-time').value.trim());
+    time = readTimePicker('task-time');
   } else if (mode === 'bracket') {
-    time = roundTo30(document.getElementById('task-time-start').value.trim());
-    timeEnd = roundTo30(document.getElementById('task-time-end').value.trim());
-    if (!time || !timeEnd) { toast('Enter both start and end time'); return; }
+    time = readTimePicker('task-time-start');
+    timeEnd = readTimePicker('task-time-end');
+    if (!time || !timeEnd) { toast('Set both start and end time'); return; }
   }
 
   if (!name) { toast('Enter task name'); return; }
@@ -661,9 +679,6 @@ async function saveTask() {
   try {
     await db.collection('homes').doc(homeCode).collection('tasks').add(data);
     document.getElementById('task-name').value = '';
-    document.getElementById('task-time').value = '';
-    document.getElementById('task-time-start').value = '';
-    document.getElementById('task-time-end').value = '';
     document.getElementById('task-freq').value = 'daily';
     document.querySelector('input[name="task-time-mode"][value="none"]').checked = true;
     timeModeChanged();
@@ -727,9 +742,13 @@ function openEditModal(id) {
   else if (t.time) mode = 'exact';
   document.querySelector('input[name="edit-task-time-mode"][value="' + mode + '"]').checked = true;
   editTimeModeChanged();
-  document.getElementById('edit-task-time').value = mode === 'exact' ? (t.time || '') : '';
-  document.getElementById('edit-task-time-start').value = mode === 'bracket' ? (t.time || '') : '';
-  document.getElementById('edit-task-time-end').value = mode === 'bracket' ? (t.timeEnd || '') : '';
+  // Prefill picker values
+  if (mode === 'exact') {
+    setTimePicker('edit-task-time', t.time || '');
+  } else if (mode === 'bracket') {
+    setTimePicker('edit-task-time-start', t.time || '');
+    setTimePicker('edit-task-time-end', t.timeEnd || '');
+  }
 
   editSelectedDays = [...(t.days || [])];
   editFreqChanged();
@@ -763,11 +782,11 @@ async function saveEditedTask() {
   const mode = document.querySelector('input[name="edit-task-time-mode"]:checked').value;
   let time = '', timeEnd = '';
   if (mode === 'exact') {
-    time = roundTo30(document.getElementById('edit-task-time').value.trim());
+    time = readTimePicker('edit-task-time');
   } else if (mode === 'bracket') {
-    time = roundTo30(document.getElementById('edit-task-time-start').value.trim());
-    timeEnd = roundTo30(document.getElementById('edit-task-time-end').value.trim());
-    if (!time || !timeEnd) { toast('Enter both start and end time'); return; }
+    time = readTimePicker('edit-task-time-start');
+    timeEnd = readTimePicker('edit-task-time-end');
+    if (!time || !timeEnd) { toast('Set both start and end time'); return; }
   }
 
   if (!name) { toast('Enter task name'); return; }
@@ -866,11 +885,61 @@ function roundTo30(t) {
   const parts = t.split(':');
   let h = parseInt(parts[0]);
   let m = parseInt(parts[1]) || 0;
-  // Round to nearest 30
   if (m < 15) m = 0;
   else if (m < 45) m = 30;
   else { m = 0; h = (h + 1) % 24; }
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+// ── CUSTOM TIME PICKER (3 dropdowns: hour, minute, AM/PM) ──
+function buildTimePicker(containerId, prefix) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const hourOptions = Array.from({length: 12}, (_, i) => '<option value="' + (i + 1) + '">' + (i + 1) + '</option>').join('');
+  container.innerHTML =
+    '<select id="' + prefix + '-hour">' + hourOptions + '</select>' +
+    '<span class="colon">:</span>' +
+    '<select id="' + prefix + '-min"><option value="00">00</option><option value="30">30</option></select>' +
+    '<select id="' + prefix + '-ampm"><option value="AM">AM</option><option value="PM">PM</option></select>';
+}
+
+// Read picker value → 24-hr HH:MM string
+function readTimePicker(prefix) {
+  const h = document.getElementById(prefix + '-hour');
+  const m = document.getElementById(prefix + '-min');
+  const a = document.getElementById(prefix + '-ampm');
+  if (!h || !m || !a) return '';
+  let hour = parseInt(h.value);
+  const min = m.value;
+  const ampm = a.value;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  else if (ampm === 'PM' && hour !== 12) hour += 12;
+  return String(hour).padStart(2, '0') + ':' + min;
+}
+
+// Set picker from 24-hr HH:MM string
+function setTimePicker(prefix, time) {
+  if (!time) {
+    // Default 8:00 AM
+    setPickerValues(prefix, 8, '00', 'AM');
+    return;
+  }
+  const parts = time.split(':');
+  let h = parseInt(parts[0]);
+  const m = (parseInt(parts[1]) || 0) < 15 ? '00' : '30';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  setPickerValues(prefix, h, m, ampm);
+}
+
+function setPickerValues(prefix, h, m, ampm) {
+  const hEl = document.getElementById(prefix + '-hour');
+  const mEl = document.getElementById(prefix + '-min');
+  const aEl = document.getElementById(prefix + '-ampm');
+  if (hEl) hEl.value = h;
+  if (mEl) mEl.value = m;
+  if (aEl) aEl.value = ampm;
 }
 
 function formatTime12(t) {
