@@ -531,13 +531,13 @@ function renderToday() {
   const dayName = dayFullNames[today.getDay()];
 
   // Rotation entries for today
-  const weeklyToday = weekly[dayName] ? {id: 'rot-w-' + dayName, text: weekly[dayName], kind: 'weekly'} : null;
-  const laundryToday = laundry[dayName] ? {id: 'rot-l-' + dayName, text: laundry[dayName], kind: 'weekly'} : null;
+  const weeklyToday = rotText(weekly[dayName]) ? {id: 'rot-w-' + dayName, text: rotText(weekly[dayName]), kind: 'weekly'} : null;
+  const laundryToday = rotText(laundry[dayName]) ? {id: 'rot-l-' + dayName, text: rotText(laundry[dayName]), kind: 'weekly'} : null;
   let monthlyToday = null;
   if (dayName === 'Sat' && monthly.length) {
     const weekOfMonth = Math.ceil(today.getDate() / 7);
     const idx = (weekOfMonth - 1) % monthly.length;
-    monthlyToday = {id: 'rot-m-' + idx, text: monthly[idx], kind: 'monthly'};
+    monthlyToday = {id: 'rot-m-' + idx, text: rotText(monthly[idx]), kind: 'monthly'};
   }
 
   const hasAnything = todayTasks.length || weeklyToday || laundryToday || monthlyToday;
@@ -668,8 +668,11 @@ async function saveTask() {
   if (!name) { toast('Enter task name'); return; }
   if (freq === 'weekly' && selectedDays.length === 0) { toast('Select at least one day'); return; }
 
+  toast('Translating…');
+  const nameHi = await translateToHindi(name);
+
   const data = {
-    name, freq, time, timeEnd,
+    name, nameHi, freq, time, timeEnd,
     days: freq === 'weekly' ? [...selectedDays] : [],
     enabled: true,
     order: tasks.length ? Math.max(...tasks.map(t => t.order || 0)) + 1 : 0,
@@ -792,8 +795,16 @@ async function saveEditedTask() {
   if (!name) { toast('Enter task name'); return; }
   if (freq === 'weekly' && editSelectedDays.length === 0) { toast('Select at least one day'); return; }
 
+  const existing = tasks.find(t => t.id === editingId);
+  let nameHi = existing && existing.nameHi ? existing.nameHi : '';
+  // Re-translate only if name changed
+  if (!existing || existing.name !== name) {
+    toast('Translating…');
+    nameHi = await translateToHindi(name);
+  }
+
   const data = {
-    name, freq, time, timeEnd,
+    name, nameHi, freq, time, timeEnd,
     days: freq === 'weekly' ? [...editSelectedDays] : []
   };
   try {
@@ -813,12 +824,18 @@ function setTab(t) {
 }
 
 // ── ROTATION EDITORS (day-of-week views) ──
+function rotText(v) {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  return v.en || '';
+}
+
 function renderRotations() {
   const wkEl = document.getElementById('weekly-editor');
   if (wkEl) {
     wkEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map(d =>
       '<div class="rot-row"><span class="lbl">' + d + '</span>' +
-      '<input value="' + escapeAttr(weekly[d] || '') + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>'
+      '<input value="' + escapeAttr(rotText(weekly[d])) + '" data-day="' + d + '" class="wk-inp" placeholder="No task"/></div>'
     ).join('');
   }
 
@@ -827,7 +844,7 @@ function renderRotations() {
     const list = monthly.length ? monthly : [''];
     moEl.innerHTML = list.map((m, i) =>
       '<div class="rot-row"><span class="lbl">Sat ' + (i+1) + '</span>' +
-      '<input value="' + escapeAttr(m || '') + '" data-idx="' + i + '" class="mo-inp" placeholder="Monthly task ' + (i+1) + '"/></div>'
+      '<input value="' + escapeAttr(rotText(m)) + '" data-idx="' + i + '" class="mo-inp" placeholder="Monthly task ' + (i+1) + '"/></div>'
     ).join('');
   }
 
@@ -835,14 +852,27 @@ function renderRotations() {
   if (lnEl) {
     lnEl.innerHTML = DAYS.map(d =>
       '<div class="rot-row"><span class="lbl">' + d + '</span>' +
-      '<input value="' + escapeAttr(laundry[d] || '') + '" data-day="' + d + '" class="ln-inp" placeholder="No laundry"/></div>'
+      '<input value="' + escapeAttr(rotText(laundry[d])) + '" data-day="' + d + '" class="ln-inp" placeholder="No laundry"/></div>'
     ).join('');
   }
 }
 
 async function saveWeekly() {
+  const rows = document.querySelectorAll('.wk-inp');
+  if (rows.length && Array.from(rows).some(el => el.value.trim())) toast('Translating…');
   const updated = {};
-  document.querySelectorAll('.wk-inp').forEach(el => updated[el.dataset.day] = el.value.trim());
+  for (const el of rows) {
+    const en = el.value.trim();
+    if (!en) { updated[el.dataset.day] = ''; continue; }
+    const existing = weekly[el.dataset.day];
+    // If existing was already object with same en text, keep hi
+    if (existing && typeof existing === 'object' && existing.en === en) {
+      updated[el.dataset.day] = existing;
+    } else {
+      const hi = await translateToHindi(en);
+      updated[el.dataset.day] = {en, hi};
+    }
+  }
   await db.collection('homes').doc(homeCode).update({weekly: updated});
   toast('✅ Weekly rotation saved');
 }
@@ -856,17 +886,41 @@ function addMonthlySlot() {
 }
 
 async function saveMonthly() {
+  const inputs = document.querySelectorAll('.mo-inp');
+  if (Array.from(inputs).some(el => el.value.trim())) toast('Translating…');
   const updated = [];
-  document.querySelectorAll('.mo-inp').forEach(el => {
-    if (el.value.trim()) updated.push(el.value.trim());
-  });
+  let idx = 0;
+  for (const el of inputs) {
+    const en = el.value.trim();
+    if (!en) { idx++; continue; }
+    const existing = monthly[idx];
+    if (existing && typeof existing === 'object' && existing.en === en) {
+      updated.push(existing);
+    } else {
+      const hi = await translateToHindi(en);
+      updated.push({en, hi});
+    }
+    idx++;
+  }
   await db.collection('homes').doc(homeCode).update({monthly: updated});
   toast('✅ Monthly rotation saved');
 }
 
 async function saveLaundry() {
+  const rows = document.querySelectorAll('.ln-inp');
+  if (rows.length && Array.from(rows).some(el => el.value.trim())) toast('Translating…');
   const updated = {};
-  document.querySelectorAll('.ln-inp').forEach(el => updated[el.dataset.day] = el.value.trim());
+  for (const el of rows) {
+    const en = el.value.trim();
+    if (!en) { updated[el.dataset.day] = ''; continue; }
+    const existing = laundry[el.dataset.day];
+    if (existing && typeof existing === 'object' && existing.en === en) {
+      updated[el.dataset.day] = existing;
+    } else {
+      const hi = await translateToHindi(en);
+      updated[el.dataset.day] = {en, hi};
+    }
+  }
   await db.collection('homes').doc(homeCode).update({laundry: updated});
   toast('✅ Laundry rotation saved');
 }
@@ -889,6 +943,24 @@ function roundTo30(t) {
   else if (m < 45) m = 30;
   else { m = 0; h = (h + 1) % 24; }
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+// ── AUTO-TRANSLATE VIA MyMemory (free, no key) ──
+async function translateToHindi(text) {
+  if (!text) return '';
+  // Skip translation if text is already Hindi (contains Devanagari)
+  if (/[\u0900-\u097F]/.test(text)) return text;
+  try {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|hi';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data && data.responseData && data.responseData.translatedText) {
+      return data.responseData.translatedText;
+    }
+  } catch (e) {
+    console.error('Translation failed:', e);
+  }
+  return text; // fallback to original
 }
 
 // ── CUSTOM TIME PICKER (3 dropdowns: hour, minute, AM/PM) ──

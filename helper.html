@@ -98,6 +98,8 @@ body{font-family:'Inter','Noto Sans Devanagari',system-ui,sans-serif;background:
 .tmeta{font-size:11px;color:var(--sage-deep);margin-top:5px;font-weight:500;font-family:'Fraunces','Noto Sans Devanagari',serif;font-style:italic}
 .check-btn{width:56px;border:none;background:transparent;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .check-btn:active{transform:scale(.85)}
+.dot-idle{width:24px;height:24px;border-radius:50%;border:2px solid var(--sage);display:inline-block;background:transparent}
+.dot-done{width:24px;height:24px;border-radius:50%;background:var(--sage-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
 
 /* RESET */
 .reset-bar{padding:12px 16px 24px;text-align:center}
@@ -297,6 +299,13 @@ function getSatWeekOfMonth() {
   return Math.ceil(new Date().getDate() / 7);
 }
 
+// Extract display + voice text from a rotation value (string OR {en,hi} object)
+function rotDisplay(v) {
+  if (!v) return null;
+  if (typeof v === 'string') return {text: v, voice: v};
+  return {text: v.hi || v.en || '', voice: v.hi || v.en || ''};
+}
+
 function getTasksForDay(day) {
   return tasks.filter(t => {
     if (!t.enabled) return false;
@@ -317,7 +326,8 @@ function getTasksForDay(day) {
 }
 
 function getWeeklyForDay(day) {
-  if (weekly[day]) return {id:'w-'+day, text: weekly[day], kind:'weekly'};
+  const r = rotDisplay(weekly[day]);
+  if (r && r.text) return {id:'w-'+day, text: r.text, voice: r.voice, kind:'weekly'};
   return null;
 }
 
@@ -325,7 +335,9 @@ function getMonthlyForToday() {
   if (selectedDay !== 'Sat') return null;
   if (!monthly.length) return null;
   const idx = (getSatWeekOfMonth() - 1) % monthly.length;
-  return {id:'m-'+idx, text: monthly[idx], kind:'monthly'};
+  const r = rotDisplay(monthly[idx]);
+  if (r && r.text) return {id:'m-'+idx, text: r.text, voice: r.voice, kind:'monthly'};
+  return null;
 }
 
 function render() {
@@ -334,7 +346,8 @@ function render() {
   const anytime = dayTasks.filter(t => !t.time);
   const wk = getWeeklyForDay(selectedDay);
   const mo = getMonthlyForToday();
-  const laundryToday = laundry[selectedDay];
+  const laundryTodayData = rotDisplay(laundry[selectedDay]);
+  const laundryToday = laundryTodayData && laundryTodayData.text;
 
   // Progress
   const allForProgress = [...timed, ...anytime];
@@ -362,12 +375,12 @@ function render() {
 
   if (timed.length) {
     html += '<div class="section-hdr">' + T('timed') + ' <span class="section-count">' + timed.length + '</span></div>';
-    html += timed.map(t => renderTask({id: t.id, text: t.name, time: t.time, kind: 'timed'})).join('');
+    html += timed.map(t => renderTask({id: t.id, text: (t.nameHi || t.name), time: t.time, kind: 'timed'})).join('');
   }
 
   if (anytime.length) {
     html += '<div class="section-hdr">' + T('anytime') + ' <span class="section-count">' + anytime.length + '</span></div>';
-    html += anytime.map(t => renderTask({id: t.id, text: t.name})).join('');
+    html += anytime.map(t => renderTask({id: t.id, text: (t.nameHi || t.name)})).join('');
   }
 
   if (!timed.length && !anytime.length && !wk && !mo && !laundryToday) {
@@ -394,7 +407,7 @@ function renderTask(t) {
     '<div class="tname">' + escapeHtml(t.text) + '</div>' +
     (isDone ? '<div class="tmeta">' + T('done_label') + '</div>' : '') +
     '</div>' +
-    '<button class="check-btn" onclick="toggleDone(\'' + t.id + '\')">' + (isDone ? '✅' : '⭕') + '</button>' +
+    '<button class="check-btn" onclick="toggleDone(\'' + t.id + '\')">' + (isDone ? '<span class="dot-done">✓</span>' : '<span class="dot-idle"></span>') + '</button>' +
     '</div>';
 }
 
@@ -402,10 +415,10 @@ function speakTask(id) {
   if (!window.speechSynthesis) return;
   let text = null;
   const t = tasks.find(x => x.id === id);
-  if (t) text = t.name;
-  else if (id.startsWith('w-')) text = weekly[id.slice(2)];
-  else if (id.startsWith('m-')) text = monthly[parseInt(id.slice(2))];
-  else if (id.startsWith('laundry-')) text = laundry[id.slice(8)];
+  if (t) text = t.nameHi || t.name;
+  else if (id.startsWith('w-')) { const r = rotDisplay(weekly[id.slice(2)]); text = r ? r.voice : null; }
+  else if (id.startsWith('m-')) { const r = rotDisplay(monthly[parseInt(id.slice(2))]); text = r ? r.voice : null; }
+  else if (id.startsWith('laundry-')) { const r = rotDisplay(laundry[id.slice(8)]); text = r ? r.voice : null; }
   if (!text) return;
 
   window.speechSynthesis.cancel();
