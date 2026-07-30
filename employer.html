@@ -241,13 +241,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
             <label class="tm-opt"><input type="radio" name="task-time-mode" value="bracket" onchange="timeModeChanged()"/> Time bracket</label>
           </div>
           <div id="time-exact-wrap" style="display:none;margin-top:8px">
-            <input id="task-time" type="time" />
+            <input id="task-time" type="time" step="1800" />
           </div>
           <div id="time-bracket-wrap" style="display:none;margin-top:8px">
             <div style="display:flex;gap:6px;align-items:center">
-              <input id="task-time-start" type="time" style="flex:1" placeholder="Start"/>
+              <input id="task-time-start" type="time" step="1800" style="flex:1" placeholder="Start"/>
               <span style="color:#888;font-size:12px">to</span>
-              <input id="task-time-end" type="time" style="flex:1" placeholder="End"/>
+              <input id="task-time-end" type="time" step="1800" style="flex:1" placeholder="End"/>
             </div>
           </div>
         </div>
@@ -329,13 +329,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
         <label class="tm-opt"><input type="radio" name="edit-task-time-mode" value="bracket" onchange="editTimeModeChanged()"/> Time bracket</label>
       </div>
       <div id="edit-time-exact-wrap" style="display:none;margin-top:8px">
-        <input id="edit-task-time" type="time" />
+        <input id="edit-task-time" type="time" step="1800" />
       </div>
       <div id="edit-time-bracket-wrap" style="display:none;margin-top:8px">
         <div style="display:flex;gap:6px;align-items:center">
-          <input id="edit-task-time-start" type="time" style="flex:1"/>
+          <input id="edit-task-time-start" type="time" step="1800" style="flex:1"/>
           <span style="color:#888;font-size:12px">to</span>
-          <input id="edit-task-time-end" type="time" style="flex:1"/>
+          <input id="edit-task-time-end" type="time" step="1800" style="flex:1"/>
         </div>
       </div>
     </div>
@@ -522,10 +522,27 @@ function renderToday() {
   const el = document.getElementById('today-list');
   const todayTasks = tasks.filter(isTaskForToday);
 
-  if (!todayTasks.length) {
+  // Get today's day name
+  const today = new Date();
+  const dayFullNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayName = dayFullNames[today.getDay()];
+
+  // Rotation entries for today
+  const weeklyToday = weekly[dayName] ? {id: 'rot-w-' + dayName, text: weekly[dayName], kind: 'weekly'} : null;
+  const laundryToday = laundry[dayName] ? {id: 'rot-l-' + dayName, text: laundry[dayName], kind: 'weekly'} : null;
+  let monthlyToday = null;
+  if (dayName === 'Sat' && monthly.length) {
+    const weekOfMonth = Math.ceil(today.getDate() / 7);
+    const idx = (weekOfMonth - 1) % monthly.length;
+    monthlyToday = {id: 'rot-m-' + idx, text: monthly[idx], kind: 'monthly'};
+  }
+
+  const hasAnything = todayTasks.length || weeklyToday || laundryToday || monthlyToday;
+
+  if (!hasAnything) {
     el.innerHTML = '<div class="empty-tasks">' +
       '<span class="icon">📝</span>' +
-      '<strong>No tasks today</strong><br/>' +
+      '<strong>No tasks today</strong>' +
       'Add tasks in the "➕ Daily & one-off tasks" tab.' +
       '</div>';
     return;
@@ -537,10 +554,23 @@ function renderToday() {
 
   let html = '';
 
-  if (special.length) {
-    html += '<div class="section-hdr">⭐ Special tasks <span class="section-count-inline">' + special.length + '</span></div>';
-    html += special.map(renderTodayRow).join('');
+  // Special tasks section: rotations + individual special tasks
+  const specialItems = [];
+  if (monthlyToday) specialItems.push(monthlyToday);
+  if (weeklyToday) specialItems.push(weeklyToday);
+  specialItems.push(...special);
+
+  if (specialItems.length) {
+    html += '<div class="section-hdr">⭐ Special tasks <span class="section-count-inline">' + specialItems.length + '</span></div>';
+    html += specialItems.map(item => item.text ? renderRotationRow(item) : renderTodayRow(item)).join('');
   }
+
+  // Laundry
+  if (laundryToday) {
+    html += '<div class="section-hdr" style="padding-top:14px">🧺 Today\'s laundry</div>';
+    html += renderRotationRow(laundryToday);
+  }
+
   if (timed.length) {
     html += '<div class="section-hdr" style="padding-top:14px">⏰ Fixed time tasks <span class="section-count-inline">' + timed.length + '</span></div>';
     html += timed.map(renderTodayRow).join('');
@@ -550,6 +580,17 @@ function renderToday() {
     html += anytime.map(renderTodayRow).join('');
   }
   el.innerHTML = html;
+}
+
+function renderRotationRow(item) {
+  return '<div class="task-row">' +
+    '<span class="toggle">' + (doneMap[item.id] ? '✅' : '⬜') + '</span>' +
+    '<div class="info">' +
+    '<div class="name">' + escapeHtml(item.text) + '</div>' +
+    '<div class="meta"><span class="badge-tag ' + (item.kind === 'monthly' ? 'badge-monthly' : 'badge-weekly') + '">' +
+    (item.kind === 'monthly' ? '🌟 Monthly' : '⭐ Weekly') + '</span></div>' +
+    '</div>' +
+    '</div>';
 }
 
 function renderTodayRow(t) {
@@ -599,10 +640,10 @@ async function saveTask() {
   const mode = document.querySelector('input[name="task-time-mode"]:checked').value;
   let time = '', timeEnd = '';
   if (mode === 'exact') {
-    time = document.getElementById('task-time').value.trim();
+    time = roundTo30(document.getElementById('task-time').value.trim());
   } else if (mode === 'bracket') {
-    time = document.getElementById('task-time-start').value.trim();
-    timeEnd = document.getElementById('task-time-end').value.trim();
+    time = roundTo30(document.getElementById('task-time-start').value.trim());
+    timeEnd = roundTo30(document.getElementById('task-time-end').value.trim());
     if (!time || !timeEnd) { toast('Enter both start and end time'); return; }
   }
 
@@ -722,10 +763,10 @@ async function saveEditedTask() {
   const mode = document.querySelector('input[name="edit-task-time-mode"]:checked').value;
   let time = '', timeEnd = '';
   if (mode === 'exact') {
-    time = document.getElementById('edit-task-time').value.trim();
+    time = roundTo30(document.getElementById('edit-task-time').value.trim());
   } else if (mode === 'bracket') {
-    time = document.getElementById('edit-task-time-start').value.trim();
-    timeEnd = document.getElementById('edit-task-time-end').value.trim();
+    time = roundTo30(document.getElementById('edit-task-time-start').value.trim());
+    timeEnd = roundTo30(document.getElementById('edit-task-time-end').value.trim());
     if (!time || !timeEnd) { toast('Enter both start and end time'); return; }
   }
 
@@ -818,6 +859,18 @@ function timeToMinutes(t) {
   if (!t) return 0;
   const parts = t.split(':');
   return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+}
+
+function roundTo30(t) {
+  if (!t) return '';
+  const parts = t.split(':');
+  let h = parseInt(parts[0]);
+  let m = parseInt(parts[1]) || 0;
+  // Round to nearest 30
+  if (m < 15) m = 0;
+  else if (m < 45) m = 30;
+  else { m = 0; h = (h + 1) % 24; }
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
 
 function formatTime12(t) {
