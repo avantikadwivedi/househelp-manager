@@ -953,14 +953,30 @@ async function translateToHindi(text) {
   try {
     const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|hi';
     const res = await fetch(url);
-    const data = await res.json();
-    if (data && data.responseData && data.responseData.translatedText) {
-      return data.responseData.translatedText;
+    if (!res.ok) {
+      console.error('Translation HTTP error:', res.status);
+      toast('⚠️ Translation service error');
+      return text;
     }
+    const data = await res.json();
+    console.log('Translation response for', text, ':', data);
+    if (data && data.responseData && data.responseData.translatedText) {
+      const translated = data.responseData.translatedText;
+      // MyMemory sometimes returns error messages instead of translations
+      if (translated.startsWith('MYMEMORY WARNING') || translated.startsWith('PLEASE')) {
+        console.error('MyMemory returned warning:', translated);
+        toast('⚠️ Translation failed: ' + translated.slice(0, 40));
+        return text;
+      }
+      return translated;
+    }
+    console.error('Unexpected response:', data);
+    return text;
   } catch (e) {
-    console.error('Translation failed:', e);
+    console.error('Translation exception:', e);
+    toast('⚠️ Translation failed: ' + e.message);
+    return text; // fallback to original
   }
-  return text; // fallback to original
 }
 
 // ── CUSTOM TIME PICKER (3 dropdowns: hour, minute, AM/PM) ──
